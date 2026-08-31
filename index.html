@@ -1,0 +1,2060 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESTOQUEPRO 360 - Sistema de Gestão de Estoque</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Bibliotecas do Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+
+  <style>
+    :root {
+      --primary: #10b981;
+      --primary-hover: #059669;
+      --sidebar-dark: #0f172a;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #f8fafc;
+    }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    }
+    .sidebar-active {
+      background-color: rgba(255, 255, 255, 0.1);
+      border-left: 4px solid var(--primary);
+    }
+  </style>
+</head>
+<body class="flex min-h-screen text-slate-800">
+  <!-- Sidebar Overlay -->
+  <div id="sidebar-overlay" class="fixed inset-0 bg-black/40 z-40 hidden md:hidden" onclick="toggleSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="fixed inset-y-0 left-0 bg-slate-900 text-slate-200 w-64 z-50 transform -translate-x-full md:translate-x-0 transition-transform duration-300 flex flex-col">
+    <div class="p-6 border-b border-slate-800 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="text-2xl">📦</span>
+        <div>
+          <h1 class="font-bold text-lg tracking-tight leading-none text-white">ESTOQUEPRO 360</h1>
+          <span class="text-xs text-slate-400">Controle Inteligente</span>
+        </div>
+      </div>
+      <button class="md:hidden text-white text-xl" onclick="toggleSidebar()">✕</button>
+    </div>
+
+    <!-- Navegacão -->
+    <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+      <div class="text-xs font-semibold text-slate-400 px-3 uppercase tracking-wider mb-2">Visão Geral</div>
+      <button onclick="switchTab('dashboard')" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all sidebar-active" data-tab="dashboard">
+        <span>📊</span> Painel de Controle
+      </button>
+
+      <div class="text-xs font-semibold text-slate-400 px-3 uppercase tracking-wider mt-6 mb-2">Estoque</div>
+      <button onclick="switchTab('inventory')" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all" data-tab="inventory">
+        <span>📦</span> Produtos Cadastrados
+      </button>
+      <button onclick="switchTab('stock-in')" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all" data-tab="stock-in">
+        <span>📥</span> Entrada de Mercadoria
+      </button>
+      <button onclick="switchTab('stock-out')" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all" data-tab="stock-out">
+        <span>📤</span> Saída de Mercadoria
+      </button>
+      <button onclick="switchTab('reorder')" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all" data-tab="reorder">
+        <span>🔄</span> Planejar Reposição
+      </button>
+      <button onclick="switchTab('stocktake')" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all" data-tab="stocktake">
+        <span>📋</span> Inventário Físico
+      </button>
+
+      <div class="text-xs font-semibold text-slate-400 px-3 uppercase tracking-wider mt-6 mb-2">Negócios</div>
+      <button onclick="switchTab('suppliers')" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all" data-tab="suppliers">
+        <span>🏭</span> Fornecedores
+      </button>
+      <button onclick="switchTab('analytics')" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all" data-tab="analytics">
+        <span>📈</span> Análises & Gráficos
+      </button>
+      <button onclick="switchTab('valuation')" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all" data-tab="valuation">
+        <span>💰</span> Avaliação de Estoque
+      </button>
+
+      <div class="text-xs font-semibold text-slate-400 px-3 uppercase tracking-wider mt-6 mb-2">Sistema</div>
+      <button onclick="switchTab('settings')" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all" data-tab="settings">
+        <span>⚙️</span> Configurações
+      </button>
+    </nav>
+
+    <!-- Sidebar Rodapé -->
+    <div class="p-4 border-t border-slate-800">
+      <button onclick="exportBackup()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-3 rounded-lg text-sm flex items-center justify-center gap-2 transition-all">
+        💾 Exportar Backup
+      </button>
+      <div class="text-xs text-slate-500 text-center mt-3">ESTOQUEPRO 360 v1.0.0 (Cloud)</div>
+    </div>
+  </aside>
+
+  <!-- Main Content Wrapper -->
+  <div class="flex-1 md:ml-64 flex flex-col min-h-screen">
+    
+    <!-- Top Header -->
+    <header class="bg-white border-b border-slate-200 h-16 px-6 flex items-center justify-between sticky top-0 z-30">
+      <div class="flex items-center gap-4">
+        <button onclick="toggleSidebar()" class="md:hidden text-2xl hover:bg-slate-100 p-1.5 rounded-lg transition-colors">☰</button>
+        <h2 id="current-section-title" class="text-lg font-bold text-slate-800">📊 Painel de Controle</h2>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="cloud-status" class="text-xs font-bold text-emerald-600 flex items-center gap-1 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">
+          <span class="animate-pulse">☁️</span> Sincronizado
+        </span>
+        <button onclick="exportBackup()" class="text-xs font-medium border border-slate-200 hover:bg-slate-50 text-slate-700 px-3 py-2 rounded-lg transition-colors">💾 Backup</button>
+      </div>
+    </header>
+
+    <!-- Backup Unsaved Reminder -->
+    <div id="unsaved-banner" class="bg-amber-50 border-b border-amber-200 px-6 py-3 flex items-center justify-between gap-4 hidden">
+      <div class="flex items-center gap-2 text-amber-800 text-sm">
+        <span>⚠️</span>
+        <span>Aviso de backup local. Os dados já estão salvos na nuvem.</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="dismissUnsavedBanner()" class="text-amber-500 hover:text-amber-800 text-xs px-2 py-1">Ocultar</button>
+      </div>
+    </div>
+
+    <!-- Main Views (Tab Content) -->
+    <main id="main-content" class="flex-1 p-6 space-y-6">
+      <!-- Seções serão renderizadas e controladas aqui por script JS -->
+      <div id="tab-dashboard" class="tab-content space-y-6"></div>
+      <div id="tab-inventory" class="tab-content space-y-6 hidden"></div>
+      <div id="tab-stock-in" class="tab-content space-y-6 hidden"></div>
+      <div id="tab-stock-out" class="tab-content space-y-6 hidden"></div>
+      <div id="tab-reorder" class="tab-content space-y-6 hidden"></div>
+      <div id="tab-stocktake" class="tab-content space-y-6 hidden"></div>
+      <div id="tab-suppliers" class="tab-content space-y-6 hidden"></div>
+      <div id="tab-analytics" class="tab-content space-y-6 hidden"></div>
+      <div id="tab-valuation" class="tab-content space-y-6 hidden"></div>
+      <div id="tab-settings" class="tab-content space-y-6 hidden"></div>
+    </main>
+
+  </div>
+
+  <!-- Reusable Toast Notifications -->
+  <div id="toast-container" class="fixed bottom-5 right-5 space-y-2 z-50"></div>
+
+  <!-- Core Script -->
+  <script>
+    // --- INÍCIO DA CONFIGURAÇÃO DO FIREBASE ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyA5KTR4ydkmntoexUH74mHDTkTKXpdF6a4",
+      authDomain: "estoque-planeta-5424f.firebaseapp.com",
+      projectId: "estoque-planeta-5424f",
+      storageBucket: "estoque-planeta-5424f.firebasestorage.app",
+      messagingSenderId: "918015681263",
+      appId: "1:918015681263:web:c57480e7409e2fdd47711a",
+      measurementId: "G-V218892BRN"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const docRef = db.collection("estoque_app").doc("dados_principais");
+    // --- FIM DA CONFIGURAÇÃO DO FIREBASE ---
+
+    // Singleton State Controller
+    let AppState = {
+      products: [],
+      stockIn: [],
+      stockOut: [],
+      suppliers: [],
+      stocktakes: [],
+      categories: ["Sem Categoria", "Copos e Taças", "Canecas", "Camisetas", "Brindes Corporativos", "Insumos", "Embalagens", "Outros"],
+      settings: {
+        currency: "BRL",
+        lowThreshold: 5,
+        reorderMultiplier: 2,
+        showReminder: true,
+      },
+      hasUnsavedChanges: false
+    };
+
+    // Helper functions for state
+    async function saveToLocalStorage() {
+      // 1. Salva localmente (cache de segurança)
+      localStorage.setItem("estoquepro_products", JSON.stringify(AppState.products));
+      localStorage.setItem("estoquepro_stockin", JSON.stringify(AppState.stockIn));
+      localStorage.setItem("estoquepro_stockout", JSON.stringify(AppState.stockOut));
+      localStorage.setItem("estoquepro_suppliers", JSON.stringify(AppState.suppliers));
+      localStorage.setItem("estoquepro_stocktakes", JSON.stringify(AppState.stocktakes));
+      localStorage.setItem("estoquepro_categories", JSON.stringify(AppState.categories));
+      localStorage.setItem("estoquepro_settings", JSON.stringify(AppState.settings));
+
+      // 2. Salva na nuvem (Firebase)
+      try {
+        document.getElementById("cloud-status").innerHTML = `<span class="animate-spin">🔄</span> Salvando...`;
+        await docRef.set(AppState);
+        setTimeout(() => {
+          document.getElementById("cloud-status").innerHTML = `<span class="animate-pulse">☁️</span> Sincronizado`;
+        }, 800);
+      } catch (error) {
+        console.error("Erro ao salvar no Firebase: ", error);
+        document.getElementById("cloud-status").innerHTML = `<span class="text-rose-600">⚠️ Erro Nuvem</span>`;
+      }
+    }
+
+    function loadFromLocalStorage() {
+      AppState.products = JSON.parse(localStorage.getItem("estoquepro_products")) || [];
+      AppState.stockIn = JSON.parse(localStorage.getItem("estoquepro_stockin")) || [];
+      AppState.stockOut = JSON.parse(localStorage.getItem("estoquepro_stockout")) || [];
+      AppState.suppliers = JSON.parse(localStorage.getItem("estoquepro_suppliers")) || [];
+      AppState.stocktakes = JSON.parse(localStorage.getItem("estoquepro_stocktakes")) || [];
+      AppState.categories = JSON.parse(localStorage.getItem("estoquepro_categories")) || ["Sem Categoria", "Copos e Taças", "Canecas", "Camisetas", "Brindes Corporativos", "Insumos", "Embalagens", "Outros"];
+      AppState.settings = JSON.parse(localStorage.getItem("estoquepro_settings")) || {
+        currency: "BRL",
+        lowThreshold: 5,
+        reorderMultiplier: 2,
+        showReminder: true,
+      };
+    }
+
+    // Dynamic Modal Handlers
+    function openModal(title, formHtml, onConfirm = null) {
+      let overlay = document.getElementById("global-modal-overlay");
+      if (!overlay) {
+        overlay = document.createElement("div");
+        overlay.id = "global-modal-overlay";
+        overlay.className = "fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-all duration-300";
+        document.body.appendChild(overlay);
+      }
+      
+      overlay.innerHTML = `
+        <div class="bg-white rounded-xl shadow-xl border border-slate-100 max-w-lg w-full transform transition-all duration-300 scale-95 opacity-0 flex flex-col max-h-[90vh]">
+          <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+            <h3 class="font-bold text-lg text-slate-800">${title}</h3>
+            <button onclick="closeModal()" class="text-slate-400 hover:text-slate-700 text-xl font-bold p-1">✕</button>
+          </div>
+          <div class="px-6 py-5 overflow-y-auto flex-1 text-sm text-slate-600 leading-relaxed space-y-4">
+            ${formHtml}
+          </div>
+          <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-2 rounded-b-xl">
+            <button onclick="closeModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium rounded-lg transition-colors">Cancelar</button>
+            <button id="modal-submit-btn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors">${onConfirm ? "Confirmar" : "Salvar"}</button>
+          </div>
+        </div>
+      `;
+
+      setTimeout(() => {
+        const modalBox = overlay.firstElementChild;
+        modalBox.classList.remove("scale-95", "opacity-0");
+        modalBox.classList.add("scale-100", "opacity-100");
+      }, 50);
+
+      document.getElementById("modal-submit-btn").onclick = () => {
+        if (onConfirm) {
+          onConfirm();
+        } else {
+          closeModal();
+        }
+      };
+    }
+
+    function closeModal() {
+      const overlay = document.getElementById("global-modal-overlay");
+      if (overlay) {
+        const modalBox = overlay.firstElementChild;
+        modalBox.classList.remove("scale-100", "opacity-100");
+        modalBox.classList.add("scale-95", "opacity-0");
+        setTimeout(() => overlay.remove(), 150);
+      }
+    }
+
+    // Formatting Helpers
+    function formatCurrency(amount) {
+      return (amount || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return "-";
+      const parts = dateStr.split("-");
+      if (parts.length === 3) {
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
+      return dateStr;
+    }
+
+    function triggerImport() {
+      document.getElementById("hidden-import-file").click();
+    }
+
+    function dismissUnsavedBanner() {
+      AppState.hasUnsavedChanges = false;
+      document.getElementById("unsaved-banner").classList.add("hidden");
+    }
+
+    function toggleSidebar() {
+      const sidebar = document.getElementById("sidebar");
+      const overlay = document.getElementById("sidebar-overlay");
+      sidebar.classList.toggle("-translate-x-full");
+      overlay.classList.toggle("hidden");
+    }
+
+    function showToast(message, type = "success") {
+      const colors = {
+        success: "bg-emerald-600 text-white",
+        error: "bg-red-600 text-white",
+        warning: "bg-amber-500 text-white",
+        info: "bg-blue-600 text-white"
+      };
+      const toast = document.createElement("div");
+      toast.className = `${colors[type]} px-4 py-3 rounded-lg shadow-lg flex items-center justify-between gap-3 text-sm min-w-[280px] transition-all duration-300 transform translate-y-2 opacity-0`;
+      toast.innerHTML = `<span>${message}</span><button onclick="this.parentElement.remove()" class="text-white/80 hover:text-white font-bold">✕</button>`;
+      document.getElementById("toast-container").appendChild(toast);
+      
+      setTimeout(() => {
+        toast.classList.remove("translate-y-2", "opacity-0");
+      }, 50);
+
+      setTimeout(() => {
+        toast.classList.add("opacity-0", "translate-y-2");
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    // Interactive Demo Data Seeder - Customizado
+    function seedSampleData(isManual = false) {
+      AppState.suppliers = [
+        { id: "sup_1", name: "Fábrica de Acrílicos Sul", contact: "Carlos", email: "vendas@acrilicossul.com", phone: "(51) 98765-4321", website: "www.acrilicossul.com", leadTime: 5, paymentTerms: "30 Dias", rating: 5, notes: "Fornecedor de copos long drink e taças" },
+        { id: "sup_2", name: "Cerâmicas e Sublimação BR", contact: "Larissa Costa", email: "contato@ceramicasub.com", phone: "(11) 99888-7766", website: "www.ceramicasub.com", leadTime: 7, paymentTerms: "À Vista", rating: 4, notes: "Canecas classe AAA para sublimação" },
+        { id: "sup_3", name: "Malhas Corporativas Têxtil", contact: "Roberto Maia", email: "vendas@malhascorp.com", phone: "(47) 3211-1200", website: "www.malhascorp.com", leadTime: 10, paymentTerms: "15 Dias", rating: 4, notes: "Camisetas para brindes e eventos" }
+      ];
+
+      AppState.products = [
+        { id: "prod_1", name: "Copo Long Drink 350ml (Branco)", sku: "COPO-LD-BR", category: "Copos e Taças", supplierId: "sup_1", costPrice: 1.20, sellingPrice: 3.50, currentStock: 500, reorderThreshold: 100, salesChannels: ["WhatsApp", "Instagram"], description: "Copo acrílico ideal para festas e brindes corporativos.", image: "" },
+        { id: "prod_2", name: "Caneca de Porcelana Branca 325ml", sku: "CAN-PORC-01", category: "Canecas", supplierId: "sup_2", costPrice: 8.50, sellingPrice: 35.00, currentStock: 45, reorderThreshold: 20, salesChannels: ["Instagram", "Loja Física"], description: "Caneca cerâmica de alto brilho para sublimação.", image: "" },
+        { id: "prod_3", name: "Camiseta Algodão Branca (G)", sku: "CAM-ALG-G", category: "Camisetas", supplierId: "sup_3", costPrice: 15.00, sellingPrice: 45.00, currentStock: 30, reorderThreshold: 15, salesChannels: ["Mercado Livre", "WhatsApp"], description: "Camiseta 100% algodão básica corporativa.", image: "" },
+        { id: "prod_4", name: "Taça Gin Acrílica (Transparente)", sku: "TACA-GIN-TR", category: "Copos e Taças", supplierId: "sup_1", costPrice: 2.80, sellingPrice: 6.00, currentStock: 150, reorderThreshold: 50, salesChannels: ["Instagram", "WhatsApp"], description: "Taça de Gin resistente de 580ml.", image: "" }
+      ];
+
+      AppState.stockIn = [];
+      AppState.stockOut = [];
+      AppState.stocktakes = [];
+      
+      const today = new Date();
+      for (let i = 30; i >= 1; i--) {
+        const d = new Date();
+        d.setDate(today.getDate() - i);
+        const dStr = d.toISOString().split("T")[0];
+
+        if (i % 8 === 0) {
+          AppState.stockIn.push({
+            id: `in_gen_${i}a`, productId: "prod_1", supplierName: "Fábrica de Acrílicos Sul", poNumber: `OC-${1000 + i}`, quantity: 200, unitCost: 1.20, date: dStr, notes: "Reposição estoque copos"
+          });
+        }
+        if (i % 3 === 0) {
+          AppState.stockOut.push({
+            id: `out_gen_${i}b`, productId: "prod_1", type: "Venda", quantity: 50, price: 3.50, channel: "WhatsApp", date: dStr, notes: "Pedido festa"
+          });
+        }
+      }
+
+      saveToLocalStorage();
+      if (isManual) {
+        showToast("Dados iniciais carregados e salvos na nuvem!");
+        switchTab("dashboard");
+      }
+    }
+
+    // View Routing System
+    function switchTab(tabId) {
+      document.querySelectorAll(".nav-item").forEach(btn => {
+        btn.classList.remove("sidebar-active");
+        if (btn.dataset.tab === tabId) {
+          btn.classList.add("sidebar-active");
+        }
+      });
+
+      document.querySelectorAll(".tab-content").forEach(view => {
+        view.classList.add("hidden");
+      });
+      const activeTab = document.getElementById(`tab-${tabId}`);
+      if (activeTab) {
+        activeTab.classList.remove("hidden");
+      }
+
+      const titles = {
+        dashboard: "📊 Painel de Controle",
+        inventory: "📦 Produtos Cadastrados",
+        "stock-in": "📥 Entrada de Mercadoria",
+        "stock-out": "📤 Saída de Mercadoria",
+        reorder: "🔄 Planejar Reposição",
+        stocktake: "📋 Inventário Físico / Auditoria",
+        suppliers: "🏭 Fornecedores",
+        analytics: "📈 Análises & Gráficos",
+        valuation: "💰 Avaliação de Estoque",
+        settings: "⚙️ Configurações"
+      };
+      
+      document.getElementById("current-section-title").innerText = titles[tabId] || "ESTOQUEPRO 360";
+      
+      const sidebar = document.getElementById("sidebar");
+      const overlay = document.getElementById("sidebar-overlay");
+      if (!sidebar.classList.contains("-translate-x-full")) {
+        sidebar.classList.add("-translate-x-full");
+        overlay.classList.add("hidden");
+      }
+
+      renderTabContent(tabId);
+    }
+
+    function renderTabContent(tabId) {
+      switch (tabId) {
+        case "dashboard": renderDashboard(); break;
+        case "inventory": renderInventory(); break;
+        case "stock-in": renderStockIn(); break;
+        case "stock-out": renderStockOut(); break;
+        case "reorder": renderReorder(); break;
+        case "stocktake": renderStocktake(); break;
+        case "suppliers": renderSuppliers(); break;
+        case "analytics": renderAnalytics(); break;
+        case "valuation": renderValuation(); break;
+        case "settings": renderSettings(); break;
+      }
+    }
+
+    // ==========================================
+    // TAB: ANALYTIS & DASHBOARD (PAINEL)
+    // ==========================================
+    function renderDashboard() {
+      const container = document.getElementById("tab-dashboard");
+      
+      const skusCount = AppState.products.length;
+      const totalUnits = AppState.products.reduce((acc, p) => acc + Number(p.currentStock || 0), 0);
+      const totalValue = AppState.products.reduce((acc, p) => acc + (Number(p.currentStock || 0) * Number(p.costPrice || 0)), 0);
+      
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      let revenue30d = 0;
+      let cogs30d = 0;
+      AppState.stockOut.forEach(outItem => {
+        const itemDate = new Date(outItem.date);
+        if (itemDate >= thirtyDaysAgo && outItem.type === "Venda") {
+          const qty = Number(outItem.quantity || 0);
+          revenue30d += qty * Number(outItem.price || 0);
+          const prod = AppState.products.find(p => p.id === outItem.productId);
+          if (prod) {
+            cogs30d += qty * Number(prod.costPrice || 0);
+          }
+        }
+      });
+      
+      const grossProfit30d = revenue30d - cogs30d;
+      const margin30d = revenue30d > 0 ? (grossProfit30d / revenue30d) * 100 : 0;
+
+      const lowStockItems = AppState.products.filter(p => Number(p.currentStock || 0) <= Number(p.reorderThreshold || AppState.settings.lowThreshold) && Number(p.currentStock || 0) > 0);
+      const outOfStockItems = AppState.products.filter(p => Number(p.currentStock || 0) === 0);
+
+      container.innerHTML = `
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="glass-card p-5 rounded-2xl flex items-center gap-4">
+            <div class="text-3xl bg-indigo-50 p-3 rounded-xl">📦</div>
+            <div>
+              <div class="text-2xl font-bold text-slate-800">${skusCount}</div>
+              <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total de SKUs</div>
+            </div>
+          </div>
+          <div class="glass-card p-5 rounded-2xl flex items-center gap-4">
+            <div class="text-3xl bg-blue-50 p-3 rounded-xl">🏷️</div>
+            <div>
+              <div class="text-2xl font-bold text-slate-800">${totalUnits}</div>
+              <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Peças em Estoque</div>
+            </div>
+          </div>
+          <div class="glass-card p-5 rounded-2xl flex items-center gap-4">
+            <div class="text-3xl bg-emerald-50 p-3 rounded-xl">💵</div>
+            <div>
+              <div class="text-lg font-bold text-slate-800">${formatCurrency(totalValue)}</div>
+              <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Valor Ativo (Custo)</div>
+            </div>
+          </div>
+          <div class="glass-card p-5 rounded-2xl flex items-center gap-4">
+            <div class="text-3xl bg-emerald-50 p-3 rounded-xl">📈</div>
+            <div>
+              <div class="text-lg font-bold text-slate-800">${formatCurrency(revenue30d)}</div>
+              <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Faturamento (30d)</div>
+            </div>
+          </div>
+          <div class="glass-card p-5 rounded-2xl flex items-center gap-4">
+            <div class="text-3xl bg-teal-50 p-3 rounded-xl">📊</div>
+            <div>
+              <div class="text-lg font-bold text-slate-800">${formatCurrency(grossProfit30d)}</div>
+              <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Lucro Bruto (30d)</div>
+            </div>
+          </div>
+          <div class="glass-card p-5 rounded-2xl flex items-center gap-4">
+            <div class="text-3xl bg-emerald-50 p-3 rounded-xl">💹</div>
+            <div>
+              <div class="text-2xl font-bold text-slate-800">${margin30d.toFixed(1)}%</div>
+              <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Margem Média (30d)</div>
+            </div>
+          </div>
+          <div class="glass-card p-5 rounded-2xl flex items-center gap-4 border-l-4 border-amber-500">
+            <div class="text-3xl bg-amber-50 p-3 rounded-xl">🟡</div>
+            <div>
+              <div class="text-2xl font-bold text-amber-700">${lowStockItems.length}</div>
+              <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Estoque Baixo</div>
+            </div>
+          </div>
+          <div class="glass-card p-5 rounded-2xl flex items-center gap-4 border-l-4 border-rose-500">
+            <div class="text-3xl bg-rose-50 p-3 rounded-xl">🔴</div>
+            <div>
+              <div class="text-2xl font-bold text-rose-700">${outOfStockItems.length}</div>
+              <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Item Esgotado</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2 space-y-6">
+            <div class="glass-card p-5 rounded-2xl">
+              <h3 class="font-bold text-slate-800 mb-4">📈 Histórico de Faturamento Diário (R$)</h3>
+              <div class="h-64">
+                <canvas id="dashboard-chart-revenue"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="glass-card p-5 rounded-2xl flex flex-col h-[340px]">
+            <h3 class="font-bold text-slate-800 ml-1 mb-3 flex items-center justify-between">
+              <span>⚠️ Alertas de Reposição</span>
+              <button onclick="switchTab('reorder')" class="text-xs font-medium text-emerald-600 hover:underline">Ver Detalhes →</button>
+            </h3>
+            <div class="overflow-y-auto flex-1 space-y-2 pr-1">
+              ${[...lowStockItems, ...outOfStockItems].length === 0 ? `
+                <div class="text-center py-10 text-slate-400 text-sm">
+                  <span>🎉</span> Tudo em ordem! Sem produtos abaixo do limite.
+                </div>
+              ` : [...lowStockItems, ...outOfStockItems].map(p => {
+                const isOut = Number(p.currentStock) === 0;
+                return `
+                  <div class="p-3 rounded-lg border text-sm flex items-center justify-between ${isOut ? 'bg-red-50 border-red-100 text-red-800' : 'bg-amber-50 border-amber-100 text-amber-800'}">
+                    <div>
+                      <strong class="font-semibold block">${p.name}</strong>
+                      <span class="text-xs text-slate-500 uppercase font-mono">${p.sku}</span>
+                    </div>
+                    <div class="text-right">
+                      <span class="text-xs font-bold uppercase rounded px-2 py-0.5 ${isOut ? 'bg-red-200' : 'bg-amber-100'}">${p.currentStock} unid.</span>
+                      <span class="block text-[10px] text-slate-400 mt-1">Mín: ${p.reorderThreshold || AppState.settings.lowThreshold}</span>
+                    </div>
+                  </div>
+                `;
+              }).join("")}
+            </div>
+          </div>
+        </div>
+      `;
+      initDashboardCharts(thirtyDaysAgo);
+    }
+
+    function initDashboardCharts(startDate) {
+      const dates = [];
+      const revenueDaily = [];
+      
+      const today = new Date();
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(today.getDate() - i);
+        dates.push(d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }));
+        
+        const dStr = d.toISOString().split("T")[0];
+        const dayOutList = AppState.stockOut.filter(item => item.date === dStr && item.type === "Venda");
+        const dayTotal = dayOutList.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.price)), 0);
+        revenueDaily.push(dayTotal);
+      }
+
+      const ctx = document.getElementById("dashboard-chart-revenue").getContext("2d");
+      new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: dates,
+          datasets: [{
+            label: "Faturamento diário (R$)",
+            data: revenueDaily,
+            backgroundColor: "rgba(16, 185, 129, 0.1)",
+            borderColor: "#10b981",
+            borderWidth: 2,
+            pointBackgroundColor: "#10b981",
+            tension: 0.3,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, grid: { color: "rgba(226, 232, 240, 0.6)" }, ticks: { callback: value => "R$ " + value } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    // ==========================================
+    // TAB: PRODUCT CATALOGUE (PRODUTOS)
+    // ==========================================
+    let inventoryFilter = "all";
+    let inventoryCategoryFilter = "all";
+    let inventorySearchQuery = "";
+
+    function renderInventory() {
+      const container = document.getElementById("tab-inventory");
+      
+      let filtered = AppState.products.filter(p => {
+        if (inventoryFilter === "low") {
+          return Number(p.currentStock) > 0 && Number(p.currentStock) <= Number(p.reorderThreshold || AppState.settings.lowThreshold);
+        }
+        if (inventoryFilter === "out") {
+          return Number(p.currentStock) === 0;
+        }
+        if (inventoryFilter === "in") {
+          return Number(p.currentStock) > Number(p.reorderThreshold || AppState.settings.lowThreshold);
+        }
+        return true;
+      });
+
+      if (inventoryCategoryFilter !== "all") {
+        filtered = filtered.filter(p => p.category === inventoryCategoryFilter);
+      }
+
+      if (inventorySearchQuery.trim() !== "") {
+        const q = inventorySearchQuery.toLowerCase();
+        filtered = filtered.filter(p => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q));
+      }
+
+      const countAll = AppState.products.length;
+      const countLow = AppState.products.filter(p => Number(p.currentStock) > 0 && Number(p.currentStock) <= Number(p.reorderThreshold || AppState.settings.lowThreshold)).length;
+      const countOut = AppState.products.filter(p => Number(p.currentStock) === 0).length;
+
+      container.innerHTML = `
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div class="flex flex-wrap gap-2 text-sm">
+            <button onclick="setInvTabFilter('all')" class="px-4 py-2 ${inventoryFilter === 'all' ? 'bg-slate-800 text-white font-bold' : 'bg-white hover:bg-slate-100 text-slate-700'} border rounded-lg transition-all">Todos (${countAll})</button>
+            <button onclick="setInvTabFilter('in')" class="px-4 py-2 ${inventoryFilter === 'in' ? 'bg-emerald-600 text-white font-bold' : 'bg-white hover:bg-slate-100 text-slate-700'} border rounded-lg transition-all">Em Estoque</button>
+            <button onclick="setInvTabFilter('low')" class="px-4 py-2 ${inventoryFilter === 'low' ? 'bg-amber-500 text-white font-bold' : 'bg-white hover:bg-slate-100 text-slate-700'} border rounded-lg transition-all">🟢 Estoque Baixo (${countLow})</button>
+            <button onclick="setInvTabFilter('out')" class="px-4 py-2 ${inventoryFilter === 'out' ? 'bg-rose-600 text-white font-bold' : 'bg-white hover:bg-slate-100 text-slate-700'} border rounded-lg transition-all">🔴 Esgotados (${countOut})</button>
+          </div>
+          
+          <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+            <select onchange="setInvCategoryFilter(this.value)" class="border bg-white text-sm rounded-lg px-3 py-2 outline-none">
+              <option value="all">Todas as Categorias</option>
+              ${AppState.categories.map(c => `<option value="${c}" ${inventoryCategoryFilter === c ? "selected" : ""}>${c}</option>`).join("")}
+            </select>
+            <input type="text" oninput="setInvSearch(this.value)" value="${inventorySearchQuery}" placeholder="Buscar produto..." class="border rounded-lg bg-white text-sm px-3 py-2 outline-none sm:w-64" />
+            <button onclick="showProductForm()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-4 py-2 rounded-lg transition-all flex items-center justify-center gap-2">
+              <span>+</span> Novo Produto
+            </button>
+          </div>
+        </div>
+
+        ${filtered.length === 0 ? `
+          <div class="glass-card p-10 text-center text-slate-400">
+            <span class="text-4xl block mb-2">🔍</span>
+            Nenhum produto cadastrado corresponde aos critérios de pesquisa selecionados.
+          </div>
+        ` : `
+          <div class="glass-card rounded-2xl overflow-hidden overflow-x-auto">
+            <table class="w-full text-sm text-left text-slate-600">
+              <thead class="text-xs uppercase bg-slate-100 border-b text-slate-600 font-bold">
+                <tr>
+                  <th class="px-6 py-3.5">Produto</th>
+                  <th class="px-6 py-3.5 font-mono">SKU ID</th>
+                  <th class="px-6 py-3.5">Categoria</th>
+                  <th class="px-6 py-3.5">Preço Compra</th>
+                  <th class="px-6 py-3.5 font-semibold text-slate-800">Preço Venda</th>
+                  <th class="px-6 py-3.5 text-center">Qtd Atual</th>
+                  <th class="px-6 py-3.5 text-center">Status</th>
+                  <th class="px-6 py-3.5 text-center">Ações</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y">
+                ${filtered.map(p => {
+                  const limit = p.reorderThreshold || AppState.settings.lowThreshold;
+                  let stBadge = `<span class="bg-emerald-100 text-emerald-800 font-bold text-[10px] uppercase px-2 py-1 rounded">Disponível</span>`;
+                  if (Number(p.currentStock) === 0) {
+                    stBadge = `<span class="bg-rose-100 text-rose-800 font-bold text-[10px] uppercase px-2 py-1 rounded">Esgotado</span>`;
+                  } else if (Number(p.currentStock) <= Number(limit)) {
+                    stBadge = `<span class="bg-amber-100 text-amber-800 font-bold text-[10px] uppercase px-2 py-1 rounded">Estoque Baixo</span>`;
+                  }
+                  
+                  return `
+                    <tr class="hover:bg-slate-50/50 transition-colors">
+                      <td class="px-6 py-4 flex items-center gap-3">
+                        <div class="h-10 w-10 bg-slate-100 border rounded flex items-center justify-center flex-shrink-0 text-lg">
+                          ${p.image ? `<img src="${p.image}" class="h-full w-full object-cover rounded" />` : "🎁"}
+                        </div>
+                        <div>
+                          <strong class="font-bold text-slate-800 block leading-tight">${p.name}</strong>
+                          <span class="text-xs text-slate-400 font-medium block mt-0.5">${p.description || "Sem descrição"}</span>
+                        </div>
+                      </td>
+                      <td class="px-6 py-4 font-mono text-xs">${p.sku}</td>
+                      <td class="px-6 py-4 text-xs font-semibold text-slate-500">${p.category}</td>
+                      <td class="px-6 py-4 text-xs">${formatCurrency(p.costPrice)}</td>
+                      <td class="px-6 py-4 text-xs font-bold text-slate-800">${formatCurrency(p.sellingPrice)}</td>
+                      <td class="px-6 py-4 text-center">
+                        <span class="text-sm font-bold font-mono text-slate-800">${p.currentStock}</span>
+                      </td>
+                      <td class="px-6 py-4 text-center">${stBadge}</td>
+                      <td class="px-6 py-4 text-center">
+                        <div class="inline-flex gap-1">
+                          <button onclick="showProductForm('${p.id}')" class="text-slate-500 hover:text-indigo-600 bg-slate-100 hover:bg-slate-200 p-1.5 rounded transition-colors text-xs" title="Editar">✏️</button>
+                          <button onclick="deleteProduct('${p.id}')" class="text-slate-500 hover:text-red-600 bg-slate-100 hover:bg-slate-200 p-1.5 rounded transition-colors text-xs" title="Excluir">🗑️</button>
+                        </div>
+                      </td>
+                    </tr>
+                  `;
+                }).join("")}
+              </tbody>
+            </table>
+          </div>
+        `}
+      `;
+    }
+
+    function setInvTabFilter(f) { inventoryFilter = f; renderInventory(); }
+    function setInvCategoryFilter(c) { inventoryCategoryFilter = c; renderInventory(); }
+    let searchTimeout = null;
+    function setInvSearch(s) { inventorySearchQuery = s; clearTimeout(searchTimeout); searchTimeout = setTimeout(renderInventory, 150); }
+
+    function showProductForm(productId = null) {
+      let prod = { id: "", name: "", sku: "", category: "Sem Categoria", supplierId: "", costPrice: 0, sellingPrice: 0, currentStock: 0, reorderThreshold: 5, description: "", image: "" };
+      if (productId) {
+        prod = AppState.products.find(p => p.id === productId) || prod;
+      }
+      
+      const title = prod.id ? "✏️ Editar Produto" : "🎁 Cadastrar Produto";
+      const formHtml = `
+        <form id="product-modal-form" class="space-y-4">
+          <input type="hidden" id="form-p-id" value="${prod.id}" />
+          
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-p-name">Nome do Produto *</label>
+              <input type="text" id="form-p-name" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" value="${prod.name}" required />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-p-sku">SKU ID *</label>
+              <input type="text" id="form-p-sku" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50 uppercase font-mono" value="${prod.sku}" required />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-p-cat">Categoria</label>
+              <select id="form-p-cat" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50 bg-white">
+                ${AppState.categories.map(c => `<option value="${c}" ${prod.category === c ? "selected" : ""}>${c}</option>`).join("")}
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-p-sup">Fornecedor Principal</label>
+              <select id="form-p-sup" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50 bg-white">
+                <option value="">Nenhum fornecedor</option>
+                ${AppState.suppliers.map(s => `<option value="${s.id}" ${prod.supplierId === s.id ? "selected" : ""}>${s.name}</option>`).join("")}
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-p-cost">Custo Unitário (R$)</label>
+              <input type="number" id="form-p-cost" step="0.01" min="0" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" value="${prod.costPrice}" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-p-sell">Preço de Venda (R$)</label>
+              <input type="number" id="form-p-sell" step="0.01" min="0" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" value="${prod.sellingPrice}" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-p-qty">Quantidade Inicial</label>
+              <input type="number" id="form-p-qty" min="0" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" value="${prod.currentStock}" ${prod.id ? "disabled" : ""} />
+              ${prod.id ? `<span class="text-[10px] text-slate-400 mt-1 block">Ajuste apenas via Entrada/Saída/Auditoria</span>` : ""}
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-p-limit">Limite Alerta Reposição</label>
+              <input type="number" id="form-p-limit" min="0" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" value="${prod.reorderThreshold}" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-p-desc">Breve descrição</label>
+            <input type="text" id="form-p-desc" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" value="${prod.description}" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Foto do Produto (Drag-and-Drop / Base64)</label>
+            <div id="drop-zone" class="border-2 border-dashed border-slate-300 rounded-xl p-5 text-center cursor-pointer hover:border-emerald-500 transition-colors relative flex items-center justify-center min-h-[100px]">
+              <input type="file" id="form-p-img-file" class="hidden" accept="image/*" onchange="handleImageUpload(event)" />
+              <input type="hidden" id="form-p-img-base64" value="${prod.image}" />
+              <div id="drop-zone-labels" class="${prod.image ? "hidden" : "space-y-1"}">
+                <span class="text-2xl">🖼️</span>
+                <p class="text-xs font-semibold text-slate-600">Arraste a foto ou clique para escolher</p>
+                <span class="text-[10px] text-slate-400">JPG, PNG, WebP</span>
+              </div>
+              <img id="form-p-img-preview" src="${prod.image}" class="max-h-24 object-contain ${prod.image ? "" : "hidden"} rounded" />
+              ${prod.image ? `<button type="button" onclick="removeLoadedPhoto(event)" class="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 text-xs font-bold w-6 h-6 flex items-center justify-center border border-red-200">✕</button>` : ""}
+            </div>
+          </div>
+        </form>
+      `;
+
+      openModal(title, formHtml, saveProductForm);
+      const dz = document.getElementById("drop-zone");
+      dz.addEventListener("click", () => document.getElementById("form-p-img-file").click());
+      const removeBtn = dz.querySelector("button");
+      if (removeBtn) {
+        removeBtn.addEventListener("click", ev => ev.stopPropagation());
+      }
+    }
+
+    function handleImageUpload(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const b64 = e.target.result;
+          document.getElementById("form-p-img-base64").value = b64;
+          const preview = document.getElementById("form-p-img-preview");
+          preview.src = b64;
+          preview.classList.remove("hidden");
+          document.getElementById("drop-zone-labels").classList.add("hidden");
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function removeLoadedPhoto(event) {
+      document.getElementById("form-p-img-base64").value = "";
+      document.getElementById("form-p-img-preview").src = "";
+      document.getElementById("form-p-img-preview").classList.add("hidden");
+      document.getElementById("drop-zone-labels").classList.remove("hidden");
+    }
+
+    function saveProductForm() {
+      const id = document.getElementById("form-p-id").value;
+      const name = document.getElementById("form-p-name").value;
+      const sku = document.getElementById("form-p-sku").value.toUpperCase().trim();
+      const category = document.getElementById("form-p-cat").value;
+      const supplierId = document.getElementById("form-p-sup").value;
+      const costPrice = parseFloat(document.getElementById("form-p-cost").value) || 0;
+      const sellingPrice = parseFloat(document.getElementById("form-p-sell").value) || 0;
+      const limit = parseInt(document.getElementById("form-p-limit").value) || 0;
+      const desc = document.getElementById("form-p-desc").value;
+      const base64 = document.getElementById("form-p-img-base64").value;
+
+      if (!name || !sku) {
+        showToast("Nome e SKU são campos obrigatórios!", "error");
+        return;
+      }
+
+      if (id) {
+        const p = AppState.products.find(item => item.id === id);
+        if (p) {
+          p.name = name; p.sku = sku; p.category = category; p.supplierId = supplierId; p.costPrice = costPrice; p.sellingPrice = sellingPrice; p.reorderThreshold = limit; p.description = desc; p.image = base64;
+        }
+        showToast("Produto editado com sucesso!");
+      } else {
+        if (AppState.products.some(p => p.sku === sku)) {
+          showToast(`O SKU ID "${sku}" já pertence a outro produto!`, "error");
+          return;
+        }
+        const qty = parseInt(document.getElementById("form-p-qty").value) || 0;
+        const newProduct = {
+          id: "prod_" + Math.random().toString(36).substr(2, 9),
+          name: name, sku: sku, category: category, supplierId: supplierId, costPrice: costPrice, sellingPrice: sellingPrice, currentStock: qty, reorderThreshold: limit, description: desc, image: base64, salesChannels: []
+        };
+        AppState.products.push(newProduct);
+        if (qty > 0) {
+          AppState.stockIn.push({
+            id: "in_" + Math.random().toString(36).substr(2, 9), productId: newProduct.id, supplierName: "Inventário Inicial", poNumber: "INI-001", quantity: qty, unitCost: costPrice, date: new Date().toISOString().split("T")[0], notes: "Carga inicial de estoque"
+          });
+        }
+        showToast("Produto cadastrado com sucesso!");
+      }
+      saveToLocalStorage();
+      closeModal();
+      renderInventory();
+    }
+
+    function deleteProduct(id) {
+      if (confirm("Tem certeza que deseja excluir este produto do sistema? Esta ação removerá o histórico comercial deste item.")) {
+        AppState.products = AppState.products.filter(p => p.id !== id);
+        AppState.stockIn = AppState.stockIn.filter(item => item.productId !== id);
+        AppState.stockOut = AppState.stockOut.filter(item => item.productId !== id);
+        saveToLocalStorage();
+        showToast("Produto excluído com sucesso!");
+        renderInventory();
+      }
+    }
+
+    // ==========================================
+    // TAB: STOCK IN (ENTRADAS DE ESTOQUE)
+    // ==========================================
+    function renderStockIn() {
+      const container = document.getElementById("tab-stock-in");
+      const totalCostSum = AppState.stockIn.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.unitCost || 0)), 0);
+      const totalUnits = AppState.stockIn.reduce((sum, item) => sum + Number(item.quantity), 0);
+
+      container.innerHTML = `
+        <div class="flex items-center justify-between gap-4 mb-4">
+          <div class="flex gap-4">
+            <div class="glass-card px-5 py-3 rounded-xl">
+              <span class="text-xs text-slate-400 block font-semibold uppercase">Total de Unidades Recebidas</span>
+              <strong class="text-xl font-bold text-slate-800">${totalUnits}</strong>
+            </div>
+            <div class="glass-card px-5 py-3 rounded-xl border-l-4 border-emerald-500">
+              <span class="text-xs text-slate-400 block font-semibold uppercase">Total de Investimento</span>
+              <strong class="text-xl font-bold text-emerald-700">${formatCurrency(totalCostSum)}</strong>
+            </div>
+          </div>
+          <button onclick="showStockInForm()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-4 py-2 rounded-lg transition-all flex items-center gap-1">
+            <span>+</span> Registrar Compra / Entrada
+          </button>
+        </div>
+
+        ${AppState.stockIn.length === 0 ? `
+          <div class="glass-card p-10 text-center text-slate-400">
+            Nenhum registro de entrada cadastrado. Log compras de fornecedores clicando em "+ Registrar Compra".
+          </div>
+        ` : `
+          <div class="glass-card rounded-2xl overflow-hidden overflow-x-auto">
+            <table class="w-full text-sm text-left text-slate-600">
+              <thead class="text-xs uppercase bg-slate-100 border-b text-slate-600 font-bold">
+                <tr>
+                  <th class="px-6 py-3.5">Data</th>
+                  <th class="px-6 py-3.5">Produto</th>
+                  <th class="px-6 py-3.5">Fornecedor</th>
+                  <th class="px-6 py-3.5 text-center">Quant.</th>
+                  <th class="px-6 py-3.5">Custo Unitário</th>
+                  <th class="px-6 py-3.5">Custo Total</th>
+                  <th class="px-6 py-3.5">Ref. / O.C.</th>
+                  <th class="px-6 py-3.5">Notas</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y bg-white">
+                ${[...AppState.stockIn].reverse().map(item => {
+                  const prod = AppState.products.find(p => p.id === item.productId);
+                  return `
+                    <tr class="hover:bg-slate-50/50 transition-colors">
+                      <td class="px-6 py-3.5 text-xs text-slate-500">${formatDate(item.date)}</td>
+                      <td class="px-6 py-3.5">
+                        <strong class="font-bold text-slate-800">${prod ? prod.name : "Produto Removido"}</strong>
+                        ${prod ? `<span class="block text-[10px] text-slate-400 font-mono">${prod.sku}</span>` : ""}
+                      </td>
+                      <td class="px-6 py-3.5 text-slate-700 font-semibold">${item.supplierName || "Inventário Interno"}</td>
+                      <td class="px-6 py-3.5 text-center font-bold font-mono text-emerald-700 text-sm">${item.quantity}</td>
+                      <td class="px-6 py-3.5 text-slate-500 font-mono text-xs">${formatCurrency(item.unitCost)}</td>
+                      <td class="px-6 py-3.5 text-slate-800 font-bold font-mono text-xs">${formatCurrency(item.quantity * item.unitCost)}</td>
+                      <td class="px-6 py-3.5 font-semibold text-slate-500">${item.poNumber || "-"}</td>
+                      <td class="px-6 py-3.5 text-xs text-slate-400">${item.notes || "-"}</td>
+                    </tr>
+                  `;
+                }).join("")}
+              </tbody>
+            </table>
+          </div>
+        `}
+      `;
+    }
+
+    function showStockInForm() {
+      if (AppState.products.length === 0) {
+        showToast("É necessário cadastrar ao menos um produto antes de registrar entradas de estoque!", "error");
+        return;
+      }
+      const formHtml = `
+        <form class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-in-prod">Selecionar Produto *</label>
+            <select id="form-in-prod" onchange="autoFillInCost(this.value)" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50 bg-white" required>
+              <option value="">-- Selecione o produto --</option>
+              ${AppState.products.map(p => `<option value="${p.id}">${p.name} (${p.sku})</option>`).join("")}
+            </select>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-in-qty">Quantidade Recebida *</label>
+              <input type="number" id="form-in-qty" min="1" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" required />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-in-cost">Custo Pago Unitário (R$)</label>
+              <input type="number" id="form-in-cost" step="0.01" min="0" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" />
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-in-sup">Fornecedor / Origem</label>
+              <input type="text" id="form-in-sup" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" placeholder="Ex: Metalúrgica SP" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-in-po">Nota Fiscal / Pedido Ref</label>
+              <input type="text" id="form-in-po" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50 uppercase font-mono" placeholder="Ex: OC-2342" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-in-date">Data de Recebimento</label>
+            <input type="date" id="form-in-date" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" value="${new Date().toISOString().split("T")[0]}" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-in-notes">Observações</label>
+            <input type="text" id="form-in-notes" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" placeholder="Opcional..." />
+          </div>
+        </form>
+      `;
+      openModal("📥 Registrar Entrada", formHtml, saveStockInForm);
+    }
+
+    function autoFillInCost(prodId) {
+      const p = AppState.products.find(item => item.id === prodId);
+      if (p) {
+        document.getElementById("form-in-cost").value = p.costPrice || "";
+        document.getElementById("form-in-sup").value = p.supplierId ? (AppState.suppliers.find(s => s.id === p.supplierId)?.name || "") : "";
+      }
+    }
+
+    function saveStockInForm() {
+      const pId = document.getElementById("form-in-prod").value;
+      const qty = parseInt(document.getElementById("form-in-qty").value);
+      const cost = parseFloat(document.getElementById("form-in-cost").value) || 0;
+      const supplier = document.getElementById("form-in-sup").value;
+      const po = document.getElementById("form-in-po").value;
+      const date = document.getElementById("form-in-date").value || new Date().toISOString().split("T")[0];
+      const notes = document.getElementById("form-in-notes").value;
+
+      if (!pId || isNaN(qty) || qty <= 0) {
+        showToast("Por favor, selecione o produto e indique uma quantidade válida!", "error"); return;
+      }
+
+      AppState.stockIn.push({
+        id: "in_" + Math.random().toString(36).substr(2, 9), productId: pId, supplierName: supplier, poNumber: po, quantity: qty, unitCost: cost, date: date, notes: notes
+      });
+
+      const prod = AppState.products.find(p => p.id === pId);
+      if (prod) {
+        prod.currentStock = Number(prod.currentStock || 0) + qty;
+        prod.costPrice = cost;
+      }
+      saveToLocalStorage();
+      closeModal();
+      renderStockIn();
+    }
+
+    // ==========================================
+    // TAB: STOCK OUT (SAÍDAS / VENDAS)
+    // ==========================================
+    function renderStockOut() {
+      const container = document.getElementById("tab-stock-out");
+      const salesEntries = AppState.stockOut.filter(item => item.type === "Venda");
+      const salesCount = salesEntries.length;
+      const totalRevenue = salesEntries.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.price || 0)), 0);
+      const totalUnitsSold = salesEntries.reduce((sum, item) => sum + Number(item.quantity), 0);
+
+      container.innerHTML = `
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+          <div class="flex flex-wrap gap-4">
+            <div class="glass-card px-5 py-3 rounded-xl border-l-4 border-indigo-500">
+              <span class="text-xs text-slate-400 block font-semibold uppercase">Volume de Pedidos (Vendas)</span>
+              <strong class="text-xl font-bold text-indigo-700">${salesCount} transações</strong>
+            </div>
+            <div class="glass-card px-5 py-3 rounded-xl">
+              <span class="text-xs text-slate-400 block font-semibold uppercase">Peças Vendidas</span>
+              <strong class="text-xl font-bold text-slate-800">${totalUnitsSold} unidades</strong>
+            </div>
+            <div class="glass-card px-5 py-3 rounded-xl border-l-4 border-emerald-500">
+              <span class="text-xs text-slate-400 block font-semibold uppercase">Faturamento Bruto</span>
+              <strong class="text-xl font-bold text-emerald-700">${formatCurrency(totalRevenue)}</strong>
+            </div>
+          </div>
+          <button onclick="showStockOutForm()" class="bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm px-4 py-2 rounded-lg transition-all flex items-center gap-1">
+            <span>+</span> Registrar Venda / Saída
+          </button>
+        </div>
+
+        ${AppState.stockOut.length === 0 ? `
+          <div class="glass-card p-10 text-center text-slate-400">
+            Nenhum registro de saída cadastrado. Grave saídas de estoque ou novas vendas em "+ Registrar Venda / Saída".
+          </div>
+        ` : `
+          <div class="glass-card rounded-2xl overflow-hidden overflow-x-auto">
+            <table class="w-full text-sm text-left text-slate-600">
+              <thead class="text-xs uppercase bg-slate-100 border-b text-slate-600 font-bold">
+                <tr>
+                  <th class="px-6 py-3.5">Data</th>
+                  <th class="px-6 py-3.5">Produto</th>
+                  <th class="px-6 py-3.5 text-center">Tipo</th>
+                  <th class="px-6 py-3.5 text-center">Quant.</th>
+                  <th class="px-6 py-3.5">Valor Unitário</th>
+                  <th class="px-6 py-3.5">Faturamento Total</th>
+                  <th class="px-6 py-3.5">Canal de Venda</th>
+                  <th class="px-6 py-3.5">Notas</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y bg-white">
+                ${[...AppState.stockOut].reverse().map(item => {
+                  const prod = AppState.products.find(p => p.id === item.productId);
+                  const isSale = item.type === "Venda";
+                  return `
+                    <tr class="hover:bg-slate-50/50 transition-colors">
+                      <td class="px-6 py-3.5 text-xs text-slate-500">${formatDate(item.date)}</td>
+                      <td class="px-6 py-3.5">
+                        <strong class="font-bold text-slate-800">${prod ? prod.name : "Produto Removido"}</strong>
+                        ${prod ? `<span class="block text-[10px] text-slate-400 font-mono">${prod.sku}</span>` : ""}
+                      </td>
+                      <td class="px-6 py-3.5 text-center">
+                        <span class="text-xs font-bold uppercase rounded px-2.5 py-1 ${isSale ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'}">${item.type}</span>
+                      </td>
+                      <td class="px-6 py-3.5 text-center font-bold font-mono text-rose-700 text-sm">${item.quantity}</td>
+                      <td class="px-6 py-3.5 text-slate-500 font-mono text-xs">${isSale ? formatCurrency(item.price) : "-"}</td>
+                      <td class="px-6 py-3.5 text-slate-800 font-bold font-mono text-xs">${isSale ? formatCurrency(item.quantity * item.price) : "-"}</td>
+                      <td class="px-6 py-3.5 text-slate-600 font-semibold text-xs">${isSale ? (item.channel || "Loja Física") : "-"}</td>
+                      <td class="px-6 py-3.5 text-xs text-slate-400">${item.notes || "-"}</td>
+                    </tr>
+                  `;
+                }).join("")}
+              </tbody>
+            </table>
+          </div>
+        `}
+      `;
+    }
+
+    function showStockOutForm() {
+      if (AppState.products.length === 0) {
+        showToast("Cadastre produtos no seu catálogo antes de poder registrar saídas!", "error"); return;
+      }
+      const formHtml = `
+        <form class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-out-prod">Selecione o produto *</label>
+            <select id="form-out-prod" onchange="autoFillOutPrice(this.value)" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50 bg-white" required>
+              <option value="">-- Escolha o produto --</option>
+              ${AppState.products.map(p => `<option value="${p.id}">${p.name} (Qtd: ${p.currentStock})</option>`).join("")}
+            </select>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-out-type">Tipo de Saída</label>
+              <select id="form-out-type" onchange="toggleOutTypeFields(this.value)" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50 bg-white">
+                <option value="Venda" selected>Venda Comercial</option>
+                <option value="Dano">Remover: Quebrado / Danificado</option>
+                <option value="Perda">Remover: Extravio / Perda</option>
+                <option value="Brinde">Brinde / Cortesia</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-out-qty">Quantidade de Saída *</label>
+              <input type="number" id="form-out-qty" min="1" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" required />
+            </div>
+          </div>
+          <div id="form-out-sale-items" class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-out-price">Preço Unitário de Venda (R$)</label>
+              <input type="number" id="form-out-price" step="0.01" min="0" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-out-channel">Canal de Origem</label>
+              <select id="form-out-channel" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50 bg-white">
+                <option value="WhatsApp" selected>WhatsApp Vendas</option>
+                <option value="Instagram">Instagram Direct</option>
+                <option value="Shopee">Shopee Loja</option>
+                <option value="Mercado Livre">Mercado Livre</option>
+                <option value="Loja Física">Loja Física / Presencial</option>
+                <option value="Outro">Outro Canal</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-out-date">Data da Operação</label>
+              <input type="date" id="form-out-date" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" value="${new Date().toISOString().split("T")[0]}" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-out-notes">Notas / Destino / Motivo</label>
+            <input type="text" id="form-out-notes" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" placeholder="Ex: Pedido Maria Silva, Brinde..." />
+          </div>
+        </form>
+      `;
+      openModal("📤 Registrar Saída", formHtml, saveStockOutForm);
+    }
+
+    function autoFillOutPrice(prodId) {
+      const p = AppState.products.find(item => item.id === prodId);
+      if (p) { document.getElementById("form-out-price").value = p.sellingPrice || ""; }
+    }
+
+    function toggleOutTypeFields(val) {
+      const saleRow = document.getElementById("form-out-sale-items");
+      if (val === "Venda") { saleRow.classList.remove("hidden"); } else { saleRow.classList.add("hidden"); }
+    }
+
+    function saveStockOutForm() {
+      const pId = document.getElementById("form-out-prod").value;
+      const type = document.getElementById("form-out-type").value;
+      const qty = parseInt(document.getElementById("form-out-qty").value);
+      const price = parseFloat(document.getElementById("form-out-price").value) || 0;
+      const channel = document.getElementById("form-out-channel").value;
+      const date = document.getElementById("form-out-date").value || new Date().toISOString().split("T")[0];
+      const notes = document.getElementById("form-out-notes").value;
+
+      if (!pId || isNaN(qty) || qty <= 0) {
+        showToast("Por favor, selecione o produto e indique uma quantidade de saída válida!", "error"); return;
+      }
+
+      const prod = AppState.products.find(p => p.id === pId);
+      if (!prod) return;
+
+      if (qty > Number(prod.currentStock || 0)) {
+        showToast(`Impossível realizar saída! Saldo insatisfatório. Você possui apenas ${prod.currentStock} unidades deste item.`, "error"); return;
+      }
+
+      AppState.stockOut.push({
+        id: "out_" + Math.random().toString(36).substr(2, 9), productId: pId, type: type, quantity: qty, price: price, channel: channel, date: date, notes: notes
+      });
+
+      prod.currentStock = Number(prod.currentStock) - qty;
+      saveToLocalStorage();
+      closeModal();
+      renderStockOut();
+    }
+
+    // ==========================================
+    // TAB: REORDER PLANNER (PLANEJADOR DE COMPRA)
+    // ==========================================
+    function renderReorder() {
+      const container = document.getElementById("tab-reorder");
+      const lowStockItems = AppState.products.filter(p => Number(p.currentStock) <= Number(p.reorderThreshold || AppState.settings.lowThreshold));
+
+      if (lowStockItems.length === 0) {
+        container.innerHTML = `
+          <div class="glass-card p-12 text-center text-slate-400">
+            <span class="text-4xl block mb-2">🎉</span>
+            <strong class="text-lg text-slate-700 block mb-1">Tudo Sob Controle!</strong>
+            Não há produtos em nível de alerta ou sem estoque no momento.
+          </div>
+        `;
+        return;
+      }
+
+      const groupings = {};
+      lowStockItems.forEach(p => {
+        const supKey = p.supplierId || "sem_fornecedor";
+        if (!groupings[supKey]) { groupings[supKey] = []; }
+        groupings[supKey].push(p);
+      });
+
+      let content = `
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900 leading-relaxed max-w-3xl mb-4">
+          💡 Os produtos listados abaixo estão com saldo igual ou inferior ao limite mínimo de alerta. Sugerimos reposições calculadas com base em seu <strong>multiplicador automático de reposição (×${AppState.settings.reorderMultiplier})</strong> para agilizar suas cotações e ordens de compra.
+        </div>
+      `;
+
+      Object.entries(groupings).forEach(([supId, prodsList]) => {
+        const supplierInfo = AppState.suppliers.find(s => s.id === supId);
+        const supName = supplierInfo ? supplierInfo.name : "🚫 Produtos Sem Fornecedor Cadastrado";
+        
+        let estCostBuy = 0;
+        prodsList.forEach(p => {
+          const buyQty = p.reorderThreshold * AppState.settings.reorderMultiplier;
+          estCostBuy += buyQty * Number(p.costPrice || 0);
+        });
+
+        content += `
+          <div class="glass-card rounded-2xl overflow-hidden mb-6">
+            <div class="bg-slate-100 px-6 py-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 class="font-bold text-slate-800 text-base">${supName}</h3>
+                ${supplierInfo ? `
+                  <div class="text-xs text-slate-500 mt-1 flex flex-wrap gap-x-4">
+                    <span>👤 Contato: ${supplierInfo.contact || "-"}</span>
+                    <span>📞 Tel: ${supplierInfo.phone || "-"}</span>
+                    <span>🕒 Lead Time: ${supplierInfo.leadTime || "N/A"} Dias</span>
+                  </div>
+                ` : ""}
+              </div>
+              <div class="text-right">
+                <span class="text-xs font-semibold text-slate-400 block uppercase">Custeio Estimado</span>
+                <span class="text-sm font-bold text-slate-700 block">${formatCurrency(estCostBuy)}</span>
+              </div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm text-left text-slate-600">
+                <thead class="bg-slate-50 border-b text-[11px] uppercase tracking-wider text-slate-400 font-bold">
+                  <tr>
+                    <th class="px-6 py-3">Item</th>
+                    <th class="px-6 py-3 font-mono">SKU</th>
+                    <th class="px-6 py-3 text-center">Saldo Atual</th>
+                    <th class="px-6 py-3 text-center">Limite Mín.</th>
+                    <th class="px-6 py-3 text-center text-slate-800">Qtd Reposição Sugerida</th>
+                    <th class="px-6 py-3">Preço Custo</th>
+                    <th class="px-6 py-3">Total Estimado</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y text-slate-600 bg-white">
+                  ${prodsList.map(p => {
+                    const buyUnits = p.reorderThreshold * AppState.settings.reorderMultiplier;
+                    const isEsgotado = Number(p.currentStock) === 0;
+                    return `
+                      <tr class="hover:bg-slate-50/20">
+                        <td class="px-6 py-3">
+                          <strong class="font-semibold text-slate-800 text-sm">${p.name}</strong>
+                        </td>
+                        <td class="px-6 py-3 font-mono text-xs">${p.sku}</td>
+                        <td class="px-6 py-3 text-center">
+                          <span class="inline-block font-mono font-bold ${isEsgotado ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'} rounded-lg px-2 py-0.5 text-xs">
+                            ${p.currentStock} unid.
+                          </span>
+                        </td>
+                        <td class="px-6 py-3 text-center font-semibold text-slate-500">${p.reorderThreshold}</td>
+                        <td class="px-6 py-3 text-center font-bold text-slate-900 bg-slate-50 font-mono text-sm">${buyUnits} <span class="text-[10px] text-slate-400 font-medium">unid.</span></td>
+                        <td class="px-6 py-3 text-xs font-mono">${formatCurrency(p.costPrice)}</td>
+                        <td class="px-6 py-3 text-xs font-bold text-slate-800 font-mono">${formatCurrency(buyUnits * p.costPrice)}</td>
+                      </tr>
+                    `;
+                  }).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      });
+      container.innerHTML = content;
+    }
+
+    // ==========================================
+    // TAB: STOCKTAKE (INVENTÁRIO / AUDITORIA FÍSICA)
+    // ==========================================
+    let activeStocktakeSession = null;
+
+    function renderStocktake() {
+      const container = document.getElementById("tab-stocktake");
+      if (activeStocktakeSession) {
+        renderActiveStocktake(container);
+        return;
+      }
+      container.innerHTML = `
+        <div class="flex items-center justify-between gap-4 mb-4">
+          <p class="text-sm text-slate-500">Realize auditorias físicas de estoque regulares para detectar desvios e corrigir o saldo do sistema.</p>
+          <button onclick="startNewStocktake()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-4 py-2 rounded-lg transition-all flex items-center gap-1 flex-shrink-0">
+            <span>📋</span> Novo Inventário Físico
+          </button>
+        </div>
+        ${AppState.stocktakes.length === 0 ? `
+          <div class="glass-card p-12 text-center text-slate-400">
+            <span class="text-4xl block mb-2">📋</span>
+            <strong class="text-lg text-slate-700 block mb-1">Nenhuma auditoria iniciada</strong>
+            Clique em "Novo Inventário Físico" para planejar ou conduzir uma conferência.
+          </div>
+        ` : `
+          <div class="glass-card rounded-2xl overflow-hidden overflow-x-auto">
+            <table class="w-full text-sm text-left text-slate-600">
+              <thead class="text-xs uppercase bg-slate-100 border-b text-slate-600 font-bold">
+                <tr>
+                  <th class="px-6 py-3.5">Data de Início</th>
+                  <th class="px-6 py-3.5">Estado</th>
+                  <th class="px-6 py-3.5 text-center">Itens Auditados</th>
+                  <th class="px-6 py-3.5 text-center">Discrepâncias</th>
+                  <th class="px-6 py-3.5 text-center">Ações</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y bg-white">
+                ${[...AppState.stocktakes].reverse().map(st => {
+                  let isDraft = st.status === "Rascunho";
+                  let badge = isDraft ? `<span class="bg-amber-100 text-amber-800 text-[10px] uppercase font-bold px-2 py-0.5 rounded">Rascunho</span>` : `<span class="bg-emerald-100 text-emerald-800 text-[10px] uppercase font-bold px-2 py-0.5 rounded">Concluído</span>`;
+                  return `
+                    <tr class="hover:bg-slate-50/50 transition-colors">
+                      <td class="px-6 py-3.5 font-semibold text-slate-700">${formatDate(st.date)}</td>
+                      <td class="px-6 py-3.5">${badge}</td>
+                      <td class="px-6 py-3.5 text-center">${st.items.length} produtos</td>
+                      <td class="px-6 py-3.5 text-center font-bold font-mono ${st.discrepanciesCount > 0 ? "text-amber-600" : "text-emerald-700"}">${st.discrepanciesCount} desalinhados</td>
+                      <td class="px-6 py-3.5 text-center">
+                        <div class="inline-flex gap-2">
+                          <button onclick="viewStocktakeSession('${st.id}')" class="text-xs px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded transition-colors font-medium">
+                            ${isDraft ? "Continuar" : "Visualizar"}
+                          </button>
+                          <button onclick="deleteStocktakeSession('${st.id}')" class="text-slate-400 hover:text-red-500 p-1 text-xs" title="Excluir">🗑️</button>
+                        </div>
+                      </td>
+                    </tr>
+                  `;
+                }).join("")}
+              </tbody>
+            </table>
+          </div>
+        `}
+      `;
+    }
+
+    function startNewStocktake() {
+      if (AppState.products.length === 0) { showToast("Você não possui produtos cadastrados para auditar!", "error"); return; }
+      const newSession = {
+        id: "stk_" + Math.random().toString(36).substr(2, 9),
+        date: new Date().toISOString().split("T")[0],
+        status: "Rascunho",
+        discrepanciesCount: 0,
+        items: AppState.products.map(p => { return { productId: p.id, name: p.name, sku: p.sku, expected: p.currentStock, counted: p.currentStock }; })
+      };
+      AppState.stocktakes.push(newSession);
+      activeStocktakeSession = newSession;
+      saveToLocalStorage();
+      renderStocktake();
+    }
+
+    function renderActiveStocktake(container) {
+      const st = activeStocktakeSession;
+      container.innerHTML = `
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+          <div>
+            <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+              <span>📋</span> Auditoria Física - ${formatDate(st.date)}
+              <span class="text-xs uppercase font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded ml-2">Rascunho Aberto</span>
+            </h3>
+            <p class="text-xs text-slate-500 mt-1">Insira a quantidade física contada na coluna "Contado".</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="saveStocktakeDraft()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold text-sm rounded-lg transition-colors">Salvar Rascunho</button>
+            <button onclick="finalizeAndCommitStocktake()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm rounded-lg transition-colors">Concluir & Aplicar Ajustes</button>
+            <button onclick="cancelActiveStocktake()" class="text-slate-400 hover:text-slate-700 text-sm ml-2">Descartar</button>
+          </div>
+        </div>
+        <div class="glass-card rounded-2xl overflow-hidden">
+          <table class="w-full text-sm text-left text-slate-600">
+            <thead class="text-xs uppercase bg-slate-100 border-b text-slate-600 font-bold">
+              <tr>
+                <th class="px-6 py-3.5">Produto</th>
+                <th class="px-6 py-3.5 font-mono">SKU ID</th>
+                <th class="px-6 py-3.5 text-center">Registrado no Sistema</th>
+                <th class="px-6 py-3.5 text-center text-slate-800">Físico Contado</th>
+                <th class="px-6 py-3.5 text-center">Desvio</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y bg-white">
+              ${st.items.map((item, idx) => {
+                const diff = Number(item.counted) - Number(item.expected);
+                let diffBadge = `<span class="text-slate-400">-</span>`;
+                if (diff > 0) diffBadge = `<span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-0.5 rounded">+${diff} (Sobressalente)</span>`;
+                else if (diff < 0) diffBadge = `<span class="bg-red-100 text-red-800 text-xs font-bold px-2 py-0.5 rounded">${diff} (Falta)</span>`;
+                return `
+                  <tr class="hover:bg-slate-50/50 transition-colors">
+                    <td class="px-6 py-3.5 font-medium text-slate-800">${item.name}</td>
+                    <td class="px-6 py-3.5 font-mono text-xs">${item.sku}</td>
+                    <td class="px-6 py-3.5 text-center font-mono font-bold text-slate-500">${item.expected} unidades</td>
+                    <td class="px-6 py-3.5 text-center">
+                      <input type="number" min="0" oninput="updateStocktakeCountCount(${idx}, this.value)" value="${item.counted}" class="border rounded px-2 py-1 text-center w-24 bg-slate-50 outline-none font-bold text-slate-800 focus:bg-white" />
+                    </td>
+                    <td id="live-diff-col-${idx}" class="px-6 py-3.5 text-center">${diffBadge}</td>
+                  </tr>
+                `;
+              }).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function updateStocktakeCountCount(idx, val) {
+      if (!activeStocktakeSession) return;
+      const num = parseInt(val);
+      const item = activeStocktakeSession.items[idx];
+      if (item && !isNaN(num) && num >= 0) {
+        item.counted = num;
+        const diffCol = document.getElementById(`live-diff-col-${idx}`);
+        const diff = num - Number(item.expected);
+        let badge = `<span class="text-slate-400">-</span>`;
+        if (diff > 0) badge = `<span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-0.5 rounded">+${diff} (Sobressalente)</span>`;
+        else if (diff < 0) badge = `<span class="bg-red-100 text-red-800 text-xs font-bold px-2 py-0.5 rounded">${diff} (Falta)</span>`;
+        diffCol.innerHTML = badge;
+      }
+    }
+
+    function saveStocktakeDraft() {
+      if (!activeStocktakeSession) return;
+      let discItems = 0;
+      activeStocktakeSession.items.forEach(item => { if (Number(item.expected) !== Number(item.counted)) discItems++; });
+      activeStocktakeSession.discrepanciesCount = discItems;
+      const idx = AppState.stocktakes.findIndex(st => st.id === activeStocktakeSession.id);
+      if (idx !== -1) AppState.stocktakes[idx] = activeStocktakeSession;
+      saveToLocalStorage();
+      activeStocktakeSession = null;
+      showToast("Rascunho de inventário salvo!");
+      renderStocktake();
+    }
+
+    function finalizeAndCommitStocktake() {
+      if (!activeStocktakeSession) return;
+      if (!confirm("As faltas e sobras físicas serão aplicadas ao estoque real. Deseja prosseguir?")) return;
+      
+      let discItems = 0;
+      activeStocktakeSession.items.forEach(item => {
+        const diff = Number(item.counted) - Number(item.expected);
+        const prod = AppState.products.find(p => p.id === item.productId);
+        if (prod) {
+          if (diff !== 0) {
+            discItems++;
+            if (diff > 0) {
+              AppState.stockIn.push({ id: "in_adj_" + Math.random().toString(36).substr(2, 9), productId: prod.id, supplierName: "Inventário Físico (Ajuste)", poNumber: "AJUST-SOBRA", quantity: diff, unitCost: prod.costPrice || 0, date: new Date().toISOString().split("T")[0], notes: `Saldo corrigido de ${item.expected} para ${item.counted}` });
+            } else {
+              AppState.stockOut.push({ id: "out_adj_" + Math.random().toString(36).substr(2, 9), productId: prod.id, type: "Perda", quantity: Math.abs(diff), price: prod.sellingPrice || 0, channel: "Ajuste Interno", date: new Date().toISOString().split("T")[0], notes: `Falta de estoque corrigida de ${item.expected} para ${item.counted}` });
+            }
+          }
+          prod.currentStock = Number(item.counted);
+        }
+      });
+      activeStocktakeSession.status = "Concluído";
+      activeStocktakeSession.discrepanciesCount = discItems;
+      const idx = AppState.stocktakes.findIndex(st => st.id === activeStocktakeSession.id);
+      if (idx !== -1) AppState.stocktakes[idx] = activeStocktakeSession;
+      saveToLocalStorage();
+      activeStocktakeSession = null;
+      showToast("Conferência física concluída. Estoque reajustado!");
+      renderStocktake();
+    }
+
+    function cancelActiveStocktake() { activeStocktakeSession = null; renderStocktake(); }
+
+    function viewStocktakeSession(id) {
+      const st = AppState.stocktakes.find(item => item.id === id);
+      if (st) {
+        if (st.status === "Rascunho") { activeStocktakeSession = st; renderStocktake(); return; }
+        const title = `✓ Conferência Concluída: ${formatDate(st.date)}`;
+        const bodyContent = `
+          <div class="space-y-4">
+            <p class="text-sm">Auditoria finalizada e ajustes aplicados.</p>
+            <div class="border rounded-xl max-h-64 overflow-y-auto">
+              <table class="w-full text-xs text-left">
+                <thead class="bg-slate-50 font-bold border-b"><tr><th class="p-2">Item</th><th class="p-2 text-center">Registrado</th><th class="p-2 text-center">Contado</th><th class="p-2 text-center">Desvio</th></tr></thead>
+                <tbody class="divide-y bg-white text-slate-600">
+                  ${st.items.map(item => {
+                    const diff = Number(item.counted) - Number(item.expected);
+                    let tag = "-";
+                    if (diff > 0) tag = `<span class="text-emerald-700 font-bold">+${diff}</span>`;
+                    if (diff < 0) tag = `<span class="text-red-600 font-bold">${diff}</span>`;
+                    return `<tr><td class="p-2">${item.name}</td><td class="p-2 text-center">${item.expected}</td><td class="p-2 text-center">${item.counted}</td><td class="p-2 text-center">${tag}</td></tr>`;
+                  }).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+        openModal(title, bodyContent, closeModal);
+      }
+    }
+
+    function deleteStocktakeSession(id) {
+      if (confirm("Deseja deletar o registro desta auditoria física do histórico?")) {
+        AppState.stocktakes = AppState.stocktakes.filter(s => s.id !== id);
+        saveToLocalStorage();
+        showToast("Registro removido!");
+        renderStocktake();
+      }
+    }
+
+    // ==========================================
+    // TAB: FORNECEDORES (SUPPLIERS)
+    // ==========================================
+    function renderSuppliers() {
+      const container = document.getElementById("tab-suppliers");
+      const count = AppState.suppliers.length;
+      container.innerHTML = `
+        <div class="flex items-center justify-between gap-4 mb-4">
+          <p class="text-sm text-slate-500">Mapeie contatos de fornecedores, ratings de pontualidade e prazos logísticos.</p>
+          <button onclick="showSupplierForm()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-4 py-2 rounded-lg transition-all flex items-center gap-1 flex-shrink-0">
+            <span>+</span> Novo Fornecedor
+          </button>
+        </div>
+        ${count === 0 ? `
+          <div class="glass-card p-12 text-center text-slate-400">
+            Nenhum fornecedor cadastrado. Toque em "+ Novo Fornecedor" para arquivar seus parceiros de compra.
+          </div>
+        ` : `
+          <div class="glass-card rounded-2xl overflow-hidden overflow-x-auto">
+            <table class="w-full text-sm text-left text-slate-600">
+              <thead class="text-xs uppercase bg-slate-100 border-b text-slate-600 font-bold">
+                <tr><th class="px-6 py-3.5">Razão Social / Nome</th><th class="px-6 py-3.5">Contato Direto</th><th class="px-6 py-3.5">E-mail / Telefone</th><th class="px-6 py-3.5 text-center">Vencimento Comum</th><th class="px-6 py-3.5 text-center">Tempo de Espera</th><th class="px-6 py-3.5 text-center">Confiabilidade</th><th class="px-6 py-3.5 text-center">Ações</th></tr>
+              </thead>
+              <tbody class="divide-y bg-white">
+                ${AppState.suppliers.map(s => {
+                  let stars = "⭐".repeat(s.rating || 3);
+                  return `
+                    <tr class="hover:bg-slate-50/50 transition-colors">
+                      <td class="px-6 py-4"><strong class="font-bold text-slate-800 block text-sm">${s.name}</strong>${s.website ? `<a href="https://${s.website}" target="_blank" class="text-xs text-indigo-500 hover:underline block">${s.website}</a>` : ""}</td>
+                      <td class="px-6 py-4 text-slate-700 font-semibold">${s.contact || "-"}</td>
+                      <td class="px-6 py-4 text-xs"><span class="block">${s.email || "-"}</span><span class="block text-slate-400 mt-1">${s.phone || "-"}</span></td>
+                      <td class="px-6 py-4 text-center text-xs font-semibold uppercase text-slate-500">${s.paymentTerms || "À Vista"}</td>
+                      <td class="px-6 py-4 text-center font-bold text-slate-900 font-mono text-xs">${s.leadTime || "N/A"} dias</td>
+                      <td class="px-6 py-4 text-center text-xs">${stars}</td>
+                      <td class="px-6 py-4 text-center">
+                        <div class="inline-flex gap-1">
+                          <button onclick="showSupplierForm('${s.id}')" class="text-slate-500 hover:text-indigo-600 bg-slate-100 hover:bg-slate-200 p-1.5 rounded transition-colors text-xs" title="Editar">✏️</button>
+                          <button onclick="deleteSupplier('${s.id}')" class="text-slate-500 hover:text-red-600 bg-slate-100 hover:bg-slate-200 p-1.5 rounded transition-colors text-xs" title="Excluir">🗑️</button>
+                        </div>
+                      </td>
+                    </tr>
+                  `;
+                }).join("")}
+              </tbody>
+            </table>
+          </div>
+        `}
+      `;
+    }
+
+    function showSupplierForm(supplierId = null) {
+      let s = { id: "", name: "", contact: "", email: "", phone: "", website: "", leadTime: 7, paymentTerms: "À Vista", rating: 5, notes: "" };
+      if (supplierId) s = AppState.suppliers.find(item => item.id === supplierId) || s;
+      const title = s.id ? "✏️ Editar Fornecedor" : "🏭 Cadastrar Fornecedor";
+      const formHtml = `
+        <form id="supplier-modal-form" class="space-y-4">
+          <input type="hidden" id="form-s-id" value="${s.id}" />
+          <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-name">Razão Social / Nome Fantasia *</label><input type="text" id="form-s-name" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" value="${s.name}" required /></div>
+          <div class="grid grid-cols-2 gap-4"><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-contact">Nome do Representante</label><input type="text" id="form-s-contact" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" value="${s.contact}" /></div><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-phone">Telefone comercial</label><input type="text" id="form-s-phone" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" value="${s.phone}" placeholder="(XX) XXXXX-XXXX" /></div></div>
+          <div class="grid grid-cols-2 gap-4"><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-email">E-mail para cotações</label><input type="email" id="form-s-email" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" value="${s.email}" placeholder="vendas@fornecedor.com" /></div><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-web">Página web (Website)</label><input type="text" id="form-s-web" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" value="${s.website}" placeholder="www.fornecedor.com" /></div></div>
+          <div class="grid grid-cols-3 gap-4">
+            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-lead">Lead Time (dias)</label><input type="number" id="form-s-lead" min="0" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50 font-mono text-center" value="${s.leadTime}" /></div>
+            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-pay">Vencimento Fatura</label>
+              <select id="form-s-pay" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50 bg-white">
+                <option value="À Vista" ${s.paymentTerms === 'À Vista' ? 'selected' : ''}>À Vista</option>
+                <option value="15 Dias" ${s.paymentTerms === '15 Dias' ? 'selected' : ''}>15 Dias</option>
+                <option value="30 Dias" ${s.paymentTerms === '30 Dias' ? 'selected' : ''}>30 Dias</option>
+              </select>
+            </div>
+            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-rate">Avaliação Rating</label>
+              <select id="form-s-rate" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50 bg-white">
+                <option value="5" ${s.rating == 5 ? 'selected' : ''}>⭐⭐⭐⭐⭐</option>
+                <option value="4" ${s.rating == 4 ? 'selected' : ''}>⭐⭐⭐⭐</option>
+                <option value="3" ${s.rating == 3 ? 'selected' : ''}>⭐⭐⭐</option>
+              </select>
+            </div>
+          </div>
+          <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-notes">Notas / Condições</label><input type="text" id="form-s-notes" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" value="${s.notes}" /></div>
+        </form>
+      `;
+      openModal(title, formHtml, saveSupplierForm);
+    }
+
+    function saveSupplierForm() {
+      const id = document.getElementById("form-s-id").value;
+      const name = document.getElementById("form-s-name").value;
+      if (!name) { showToast("O Razão Social/Nome Fantasia é obrigatório!", "error"); return; }
+
+      const payload = {
+        name: name, contact: document.getElementById("form-s-contact").value, phone: document.getElementById("form-s-phone").value,
+        email: document.getElementById("form-s-email").value, website: document.getElementById("form-s-web").value,
+        leadTime: parseInt(document.getElementById("form-s-lead").value) || 0, paymentTerms: document.getElementById("form-s-pay").value,
+        rating: parseInt(document.getElementById("form-s-rate").value) || 3, notes: document.getElementById("form-s-notes").value
+      };
+
+      if (id) {
+        const s = AppState.suppliers.find(item => item.id === id);
+        if (s) Object.assign(s, payload);
+        showToast("Fornecedor atualizado!");
+      } else {
+        payload.id = "sup_" + Math.random().toString(36).substr(2, 9);
+        AppState.suppliers.push(payload);
+        showToast("Fornecedor cadastrado com sucesso!");
+      }
+      saveToLocalStorage();
+      closeModal();
+      renderSuppliers();
+    }
+
+    function deleteSupplier(id) {
+      if (confirm("Deseja apagar este fornecedor? Seus produtos permanecerão sem vínculo.")) {
+        AppState.suppliers = AppState.suppliers.filter(s => s.id !== id);
+        AppState.products.forEach(p => { if (p.supplierId === id) p.supplierId = ""; });
+        saveToLocalStorage();
+        showToast("Fornecedor excluído!");
+        renderSuppliers();
+      }
+    }
+
+    // ==========================================
+    // TAB: VALUATION (AVALIAÇÃO E INVENTÁRIO FINANCEIRO)
+    // ==========================================
+    function renderValuation() {
+      const container = document.getElementById("tab-valuation");
+      const totalSKUs = AppState.products.length;
+      const totalUnits = AppState.products.reduce((acc, p) => acc + Number(p.currentStock || 0), 0);
+      const totalCostBasis = AppState.products.reduce((sum, p) => sum + (Number(p.currentStock || 0) * Number(p.costPrice || 0)), 0);
+      const totalRetailValue = AppState.products.reduce((sum, p) => sum + (Number(p.currentStock || 0) * Number(p.sellingPrice || 0)), 0);
+      const potentialProfit = totalRetailValue - totalCostBasis;
+      const margin = totalRetailValue > 0 ? (potentialProfit / totalRetailValue) * 100 : 0;
+
+      const categoriesSummary = {};
+      AppState.categories.forEach(c => { categoriesSummary[c] = { qty: 0, cost: 0, sale: 0, items: 0 }; });
+      categoriesSummary["Sem Categoria"] = { qty: 0, cost: 0, sale: 0, items: 0 };
+
+      AppState.products.forEach(p => {
+        const cat = p.category || "Sem Categoria";
+        if (!categoriesSummary[cat]) categoriesSummary[cat] = { qty: 0, cost: 0, sale: 0, items: 0 };
+        const qty = Number(p.currentStock || 0);
+        categoriesSummary[cat].qty += qty;
+        categoriesSummary[cat].cost += qty * Number(p.costPrice || 0);
+        categoriesSummary[cat].sale += qty * Number(p.sellingPrice || 0);
+        categoriesSummary[cat].items++;
+      });
+
+      container.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div class="glass-card p-5 rounded-2xl">
+            <span class="text-xs text-slate-400 block font-semibold uppercase mb-1">Custo Total Ativo</span>
+            <strong class="text-2xl font-black text-rose-600 font-mono">${formatCurrency(totalCostBasis)}</strong>
+            <span class="text-[10px] text-slate-500 block mt-1">Capital imobilizado</span>
+          </div>
+          <div class="glass-card p-5 rounded-2xl">
+            <span class="text-xs text-slate-400 block font-semibold uppercase mb-1">Faturamento Potencial</span>
+            <strong class="text-2xl font-black text-indigo-700 font-mono">${formatCurrency(totalRetailValue)}</strong>
+            <span class="text-[10px] text-slate-500 block mt-1">Valor venda de tudo</span>
+          </div>
+          <div class="glass-card p-5 rounded-2xl border-l-4 border-emerald-500 bg-emerald-50/20">
+            <span class="text-xs text-slate-400 block font-semibold uppercase mb-1">Lucro Estimado</span>
+            <strong class="text-2xl font-black text-emerald-700 font-mono">${formatCurrency(potentialProfit)}</strong>
+            <span class="text-[10px] text-slate-500 block mt-1">Margem Projetada em <strong>${margin.toFixed(1)}%</strong></span>
+          </div>
+          <div class="glass-card p-5 rounded-2xl flex flex-col justify-center">
+            <span class="text-xs text-slate-400 block font-semibold uppercase mb-0.5">Visão Geral de Volumes</span>
+            <span class="text-sm font-bold text-slate-700 block">${totalUnits} peças</span>
+            <span class="text-[10px] text-slate-500">Distribuídas em ${totalSKUs} SKUs ativos</span>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 gap-6">
+          <div class="glass-card p-5 rounded-2xl">
+            <h3 class="font-bold text-slate-800 mb-4 text-base">📊 Balanço de Capital por Categoria</h3>
+            <div class="overflow-x-auto">
+              <table class="w-full text-slate-600 text-sm">
+                <thead class="bg-slate-50 font-bold text-slate-500 border-b text-xs">
+                  <tr><th class="p-3">Categoria</th><th class="p-3 text-center">SKUs Cadastrados</th><th class="p-3 text-center">Unidades</th><th class="p-3">Soma Custo Ativo</th><th class="p-3">Soma Venda Estimada</th><th class="p-3">Lucro Estimado</th><th class="p-3 text-center">Margem %</th></tr>
+                </thead>
+                <tbody class="divide-y bg-white">
+                  ${Object.entries(categoriesSummary).map(([catName, sum]) => {
+                    if (sum.items === 0) return "";
+                    const profit = sum.sale - sum.cost;
+                    const catMargin = sum.sale > 0 ? (profit / sum.sale) * 100 : 0;
+                    return `
+                      <tr class="hover:bg-slate-50/50">
+                        <td class="p-3 font-semibold text-slate-700">${catName}</td>
+                        <td class="p-3 text-center text-slate-500">${sum.items} itens</td>
+                        <td class="p-3 text-center text-slate-800 font-mono text-xs font-bold">${sum.qty} unid.</td>
+                        <td class="p-3 font-mono text-slate-500 text-xs">${formatCurrency(sum.cost)}</td>
+                        <td class="p-3 font-mono text-slate-800 font-semibold text-xs">${formatCurrency(sum.sale)}</td>
+                        <td class="p-3 font-mono text-emerald-700 font-bold text-xs">${formatCurrency(profit)}</td>
+                        <td class="p-3 text-center font-bold text-xs">${catMargin.toFixed(1)}%</td>
+                      </tr>
+                    `;
+                  }).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ==========================================
+    // TAB: ANALYTICS (ANÁLISES E CURVAS)
+    // ==========================================
+    let analyticsCharts = {};
+
+    function renderAnalytics() {
+      const container = document.getElementById("tab-analytics");
+      
+      const productSalesTotals = {};
+      AppState.stockOut.forEach(item => {
+        if (item.type === "Venda") {
+          productSalesTotals[item.productId] = (productSalesTotals[item.productId] || 0) + (Number(item.quantity) * Number(item.price || 0));
+        }
+      });
+
+      const topProducts = Object.entries(productSalesTotals)
+        .map(([pId, rev]) => { const p = AppState.products.find(item => item.id === pId); return { name: p ? p.name : "Removido", revenue: rev }; })
+        .sort((a,b) => b.revenue - a.revenue)
+        .slice(0, 5);
+
+      const categoryVolume = {};
+      AppState.products.forEach(p => {
+        const cat = p.category || "Sem Categoria";
+        categoryVolume[cat] = (categoryVolume[cat] || 0) + Number(p.currentStock || 0);
+      });
+
+      const channelVolume = {};
+      AppState.stockOut.forEach(item => {
+        if (item.type === "Venda") {
+          const chan = item.channel || "Loja Física";
+          channelVolume[chan] = (channelVolume[chan] || 0) + (Number(item.quantity) * Number(item.price || 0));
+        }
+      });
+
+      container.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div class="glass-card p-5 rounded-2xl">
+            <h3 class="font-bold text-slate-800 text-sm mb-4 uppercase text-slate-400">Distribuição física por Categoria</h3>
+            <div class="relative w-full" style="height: 220px;"><canvas id="chart-categories-pie"></canvas></div>
+          </div>
+          <div class="glass-card p-5 rounded-2xl">
+            <h3 class="font-bold text-slate-800 text-sm mb-4 uppercase text-slate-400">Receita por Canal de Venda (R$)</h3>
+            <div class="relative w-full" style="height: 220px;"><canvas id="chart-channels-bar"></canvas></div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="glass-card p-5 rounded-2xl md:col-span-2">
+            <h3 class="font-bold text-slate-800 text-sm mb-4 uppercase text-slate-400">🏆 TOP 5 Produtos por Faturamento</h3>
+            ${topProducts.length === 0 ? `
+              <div class="text-slate-400 text-sm py-8 text-center">Aguardando registros de vendas.</div>
+            ` : `
+              <div class="space-y-3">
+                ${topProducts.map((p, idx) => {
+                  const percent = (p.revenue / Math.max(...topProducts.map(x=>x.revenue))) * 100;
+                  return `
+                    <div class="space-y-1">
+                      <div class="flex justify-between text-xs font-semibold"><span class="text-slate-700">${idx+1}. ${p.name}</span><span class="text-indigo-700 font-mono font-bold">${formatCurrency(p.revenue)}</span></div>
+                      <div class="w-full bg-slate-100 rounded-full h-2"><div class="bg-indigo-600 h-2 rounded-full" style="width: ${percent}%"></div></div>
+                    </div>
+                  `;
+                }).join("")}
+              </div>
+            `}
+          </div>
+          <div class="glass-card p-5 rounded-2xl flex flex-col justify-between">
+            <div>
+              <h3 class="font-bold text-slate-800 text-sm mb-2 uppercase text-slate-400">Desempenho Comercial</h3>
+              <p class="text-xs text-slate-500 leading-relaxed">Faturamento consolidado entre todos os canais de venda registrados.</p>
+            </div>
+            <div class="border-t pt-4 mt-4 grid grid-cols-2 gap-2 text-center">
+              <div>
+                <span class="text-[10px] text-slate-400 block font-semibold uppercase">Total Vendas</span>
+                <strong class="text-base text-emerald-700 font-bold font-mono">${formatCurrency(Object.values(channelVolume).reduce((s,v)=>s+v,0))}</strong>
+              </div>
+              <div>
+                <span class="text-[10px] text-slate-400 block font-semibold uppercase">Canais Ativos</span>
+                <strong class="text-base text-slate-700 font-bold font-mono">${Object.keys(channelVolume).length}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const pieCtx = document.getElementById("chart-categories-pie").getContext("2d");
+      if (analyticsCharts["pie"]) analyticsCharts["pie"].destroy();
+      analyticsCharts["pie"] = new Chart(pieCtx, {
+        type: "doughnut",
+        data: { labels: Object.keys(categoryVolume), datasets: [{ data: Object.values(categoryVolume), backgroundColor: ["#6366f1", "#10b981", "#f59e0b", "#ec4899", "#8b5cf6", "#3b82f6", "#64748b"] }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "right", labels: { boxWidth: 12, font: { size: 10 } } } } }
+      });
+
+      const barCtx = document.getElementById("chart-channels-bar").getContext("2d");
+      if (analyticsCharts["bar"]) analyticsCharts["bar"].destroy();
+      analyticsCharts["bar"] = new Chart(barCtx, {
+        type: "bar",
+        data: { labels: Object.keys(channelVolume), datasets: [{ label: "Volume (R$)", data: Object.values(channelVolume), backgroundColor: "#4f46e5", borderRadius: 6 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { font: { size: 9 } } }, x: { ticks: { font: { size: 9 } } } } }
+      });
+    }
+
+    // ==========================================
+    // TAB: CONFIGURAÇÕES (SETTINGS & BACKUP)
+    // ==========================================
+    function renderSettings() {
+      const container = document.getElementById("tab-settings");
+      container.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="space-y-6">
+            <div class="glass-card p-6 rounded-2xl">
+              <h3 class="font-bold text-slate-800 mb-4 text-base flex items-center gap-2"><span>⚙️</span> Parâmetros Globais do Sistema</h3>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="set-low-limit">Padrão Limite Crítico de Estoque</label>
+                  <input type="number" id="set-low-limit" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" value="${AppState.settings.lowThreshold}" />
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="set-multiplier">Multiplicador Auto de Reposição (Suggest)</label>
+                  <input type="number" id="set-multiplier" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" value="${AppState.settings.reorderMultiplier}" />
+                </div>
+                <button onclick="saveGlobalSettingsParams()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2 rounded-lg transition-all">Salvar Parâmetros</button>
+              </div>
+            </div>
+            <div class="glass-card p-6 rounded-2xl">
+              <h3 class="font-bold text-slate-800 mb-3 text-base flex items-center gap-2"><span>🏷️</span> Gerenciador de Categorias</h3>
+              <div class="space-y-3">
+                <div class="flex gap-2">
+                  <input type="text" id="set-new-cat" class="flex-grow border rounded-lg px-3 py-1.5 text-sm outline-none bg-slate-50" placeholder="Nova Categoria..." />
+                  <button onclick="addNewSystemCategory()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-1.5 rounded-lg transition-all">Adicionar</button>
+                </div>
+                <div class="border rounded-xl p-2 bg-slate-50 max-h-36 overflow-y-auto divide-y">
+                  ${AppState.categories.map(cat => {
+                    return `<div class="flex items-center justify-between py-1.5 text-sm text-slate-700 font-semibold pl-2"><span>${cat}</span><button onclick="removeSystemCategory('${cat}')" class="text-red-500 hover:text-red-700 p-1 text-xs">🗑️</button></div>`;
+                  }).join("")}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="space-y-6">
+            <div class="glass-card p-6 rounded-2xl">
+              <h3 class="font-bold text-slate-800 mb-4 text-base flex items-center gap-2"><span>💾</span> Backup e Exportação (.CSV)</h3>
+              <p class="text-xs text-slate-500 leading-relaxed mb-4">Seus dados já estão salvos em segurança na nuvem (Firebase). No entanto, você pode exportar planilhas para o Excel abaixo.</p>
+              <div class="pt-4">
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Exportar Relatórios das Tabelas (CSV)</label>
+                <div class="grid grid-cols-2 gap-3">
+                  <button onclick="exportProductsCSV()" class="border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold text-xs py-2 rounded-lg transition-colors flex items-center justify-center gap-1">📊 Produtos (.CSV)</button>
+                  <button onclick="exportSalesOutboundCSV()" class="border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold text-xs py-2 rounded-lg transition-colors flex items-center justify-center gap-1">📈 Saídas / Vendas (.CSV)</button>
+                </div>
+              </div>
+            </div>
+            <div class="glass-card p-6 rounded-2xl border border-red-200 bg-red-50/20">
+              <h3 class="font-bold text-red-800 mb-2 text-base flex items-center gap-2"><span>⚠️</span> Zona de Perigo</h3>
+              <p class="text-xs text-slate-500 mb-4 leading-relaxed">Esta ação apagará da nuvem permanentemente todas as mercadorias, fornecedores, relatórios financeiros e históricos de vendas.</p>
+              <button onclick="factoryResetDatabase()" class="bg-red-600 hover:bg-red-700 text-white font-bold text-xs py-2 px-4 rounded-lg transition-colors">⚠️ Restaurar Configurações Originais (Zerar)</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function saveGlobalSettingsParams() {
+      AppState.settings.lowThreshold = parseInt(document.getElementById("set-low-limit").value) || 0;
+      AppState.settings.reorderMultiplier = parseInt(document.getElementById("set-multiplier").value) || 1;
+      saveToLocalStorage();
+      showToast("Configurações atualizadas com sucesso!");
+    }
+    function addNewSystemCategory() {
+      const field = document.getElementById("set-new-cat");
+      const name = field.value.trim();
+      if (!name) return;
+      if (AppState.categories.includes(name)) { showToast("Essa categoria já existe no sistema!", "error"); return; }
+      AppState.categories.push(name);
+      saveToLocalStorage();
+      field.value = "";
+      renderSettings();
+      showToast("Categoria adicionada!");
+    }
+    function removeSystemCategory(cat) {
+      if (confirm(`Tem certeza que deseja apagar a categoria "${cat}"?`)) {
+        AppState.categories = AppState.categories.filter(c => c !== cat);
+        saveToLocalStorage();
+        renderSettings();
+        showToast("Categoria excluída!");
+      }
+    }
+
+    // ==========================================
+    // DATA PORTABILITY AND BACKUPS ENGINES
+    // ==========================================
+    function exportBackup() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(AppState, null, 2));
+      const downloadAnchor = document.createElement("a");
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `estoquepro360_backup_cloud_${new Date().toISOString().split("T")[0]}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast("Backup exportado com sucesso!");
+    }
+
+    function exportProductsCSV() {
+      const BOM = "\uFEFF";
+      let csvContent = "Nome;SKU;Categoria;Estoque Atual;Limite Alerta;Preco Custo;Preco Venda;Fornecedor\r\n";
+      AppState.products.forEach(p => {
+        const sup = AppState.suppliers.find(s=>s.id===p.supplierId)?.name || "Sem Fornecedor";
+        const row = [p.name.replace(/;/g, ","), p.sku, (p.category || "Sem Categoria").replace(/;/g, ","), p.currentStock, p.reorderThreshold, (p.costPrice || 0).toFixed(2), (p.sellingPrice || 0).toFixed(2), sup.replace(/;/g, ",")].join(";");
+        csvContent += row + "\r\n";
+      });
+      const blob = new Blob([BOM + csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.setAttribute("download", `estoquepro360_produtos_${new Date().toISOString().split("T")[0]}.csv`);
+      document.body.appendChild(link); link.click(); link.remove();
+      showToast("Relatório de produtos exportado!");
+    }
+
+    function exportSalesOutboundCSV() {
+      const BOM = "\uFEFF";
+      let csvContent = "Data;Produto;SKU;Tipo;Quantidade;Preco Unitario;Faturamento;Canal;Notas\r\n";
+      AppState.stockOut.forEach(item => {
+        const p = AppState.products.find(prod => prod.id === item.productId);
+        const name = p ? p.name : "Produto Removido";
+        const sku = p ? p.sku : "-";
+        const row = [item.date, name.replace(/;/g, ","), sku, item.type, item.quantity, (item.price || 0).toFixed(2), (item.quantity * (item.price || 0)).toFixed(2), (item.channel || "Loja Física").replace(/;/g, ","), (item.notes || "").replace(/;/g, ",")].join(";");
+        csvContent += row + "\r\n";
+      });
+      const blob = new Blob([BOM + csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.setAttribute("download", `estoquepro360_saidas_vendas_${new Date().toISOString().split("T")[0]}.csv`);
+      document.body.appendChild(link); link.click(); link.remove();
+      showToast("Tabela de saídas salva!");
+    }
+
+    async function factoryResetDatabase() {
+      if (confirm("ATENÇÃO PERIGO! Você tem certeza que deseja restaurar o sistema para seu estado de fábrica? Todos os dados da nuvem serão apagados.")) {
+        if (confirm("Confirmação Final: Deseja prosseguir com o wipe total e remover o histórico da empresa?")) {
+          localStorage.removeItem("estoquepro_products");
+          
+          AppState = {
+            products: [], stockIn: [], stockOut: [], suppliers: [], stocktakes: [],
+            categories: ["Sem Categoria", "Copos e Taças", "Canecas", "Camisetas", "Brindes Corporativos", "Insumos", "Embalagens", "Outros"],
+            settings: { currency: "BRL", lowThreshold: 10, reorderMultiplier: 2 }
+          };
+          
+          try {
+            await docRef.set(AppState);
+            showToast("Banco de dados na nuvem reiniciado com sucesso! Recarregando...");
+            setTimeout(() => location.reload(), 1500);
+          } catch(e) {
+            showToast("Erro ao apagar dados da nuvem.", "error");
+          }
+        }
+      }
+    }
+
+    // Inicialização e Carregamento (Firebase First)
+    window.onload = async function() {
+      document.getElementById("cloud-status").innerHTML = `<span class="animate-spin">🔄</span> Carregando nuvem...`;
+      
+      try {
+        const docSnap = await docRef.get();
+        if (docSnap.exists) {
+          const cloudData = docSnap.data();
+          AppState.products = cloudData.products || [];
+          AppState.stockIn = cloudData.stockIn || [];
+          AppState.stockOut = cloudData.stockOut || [];
+          AppState.suppliers = cloudData.suppliers || [];
+          AppState.stocktakes = cloudData.stocktakes || [];
+          AppState.categories = cloudData.categories || ["Sem Categoria", "Copos e Taças", "Canecas", "Camisetas", "Brindes Corporativos", "Insumos", "Embalagens", "Outros"];
+          AppState.settings = cloudData.settings || { currency: "BRL", lowThreshold: 5, reorderMultiplier: 2, showReminder: true };
+          
+          document.getElementById("cloud-status").innerHTML = `<span class="animate-pulse">☁️</span> Sincronizado`;
+        } else {
+          // Documento não existe ainda na nuvem, gerar carga inicial customizada
+          seedSampleData(false);
+          document.getElementById("cloud-status").innerHTML = `<span class="animate-pulse">☁️</span> Sincronizado`;
+        }
+      } catch (error) {
+        console.error("Erro ao carregar Firebase. Fallback para LocalStorage:", error);
+        document.getElementById("cloud-status").innerHTML = `<span class="text-amber-600 font-bold">⚠️ Offline (Modo Local)</span>`;
+        loadFromLocalStorage();
+        if (AppState.products.length === 0) {
+          seedSampleData(false);
+        }
+      }
+      switchTab("dashboard");
+    };
+  </script>
+</body>
+</html>
