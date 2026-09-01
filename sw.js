@@ -1,4 +1,4 @@
-const CACHE_NAME = 'estoquepro-saas-v3';
+const CACHE_NAME = 'estoquepro-saas-v1';
 const urlsToCache = [
   './index.html',
   './manifest.json'
@@ -15,7 +15,6 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // Retorna do cache se encontrar, senão vai para a internet
         return response || fetch(event.request);
       })
   );
