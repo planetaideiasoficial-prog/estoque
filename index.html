@@ -181,29 +181,56 @@
     }
 
     // --- LÓGICA DE AUTENTICAÇÃO E SAAS (O coração da segurança) ---
-    auth.onAuthStateChanged(user => {
+    // LINK BASE DO SEU CHECKOUT (Altere para o seu link real)
+    const URL_CHECKOUT = "https://pay.kirvano.com/seu-link-aqui";
+
+    function redirectToCheckout() {
+      const user = firebase.auth().currentUser;
       if (user) {
-        // Cálculo dos 30 Dias de Teste
-        const creationTime = new Date(user.metadata.creationTime).getTime();
+        // Envia o e-mail e UID na URL para o gateway saber quem está pagando
+        const checkoutPersonalizado = `${URL_CHECKOUT}?email=${encodeURIComponent(user.email)}&uid=${user.uid}`;
+        window.location.href = checkoutPersonalizado;
+      } else {
+        window.location.href = URL_CHECKOUT;
+      }
+    }
+
+    // --- LÓGICA DE AUTENTICAÇÃO E SAAS (Com gravação no banco) ---
+    auth.onAuthStateChanged(async user => {
+      if (user) {
+        docRef = db.collection("clientes_saas").doc(user.uid);
+        
+        // Verifica se já existe a data de expiração gravada na nuvem para este usuário
+        const docSnap = await docRef.get();
+        let expirationDateMs;
+        
+        if (docSnap.exists && docSnap.data().expirationDate) {
+          expirationDateMs = docSnap.data().expirationDate;
+        } else {
+          // Se for conta nova, calcula 30 dias a partir de agora e salva na nuvem
+          const now = new Date().getTime();
+          expirationDateMs = now + (30 * 24 * 60 * 60 * 1000); // 30 dias em milissegundos
+          
+          // Salva a data de expiração no Firestore
+          await docRef.set({
+            expirationDate: expirationDateMs,
+            createdAt: new Date().toISOString()
+          }, { merge: true });
+        }
+
         const now = new Date().getTime();
-        const daysUsed = Math.floor((now - creationTime) / (1000 * 3600 * 24));
-        const daysLeft = 30 - daysUsed;
+        const timeLeftMs = expirationDateMs - now;
+        const daysLeft = Math.ceil(timeLeftMs / (1000 * 60 * 60 * 24));
 
         if (daysLeft < 0) {
-          // Bloqueia e mostra tela de Checkout
           document.getElementById("auth-screen").classList.add("hidden");
           document.getElementById("renewal-screen").classList.remove("hidden");
           document.getElementById("renewal-screen").classList.add("flex");
           return;
         }
 
-        // Atualiza aviso visual de dias restantes
-        document.getElementById("trial-counter").innerText = `TESTE: ${daysLeft} DIAS RESTANTES`;
-
-        // Define a pasta do Firebase para ESTE usuário
-        docRef = db.collection("clientes_saas").doc(user.uid);
+        document.getElementById("trial-counter").innerText = `TESTE: ${daysLeft > 0 ? daysLeft : 0} DIAS RESTANTES`;
         
-        // Esconde telas de bloqueio
         document.getElementById("auth-screen").classList.add("hidden");
         document.getElementById("auth-screen").classList.remove("flex");
         document.getElementById("renewal-screen").classList.add("hidden");
@@ -212,7 +239,7 @@
         startRealtimeSync();
 
       } else {
-        // Deslogado: Cancela sincronização e limpa a tela
+        // Deslogado
         if (activeSnapshot) activeSnapshot(); 
         document.getElementById("auth-screen").classList.remove("hidden");
         document.getElementById("auth-screen").classList.add("flex");
