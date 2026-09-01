@@ -173,15 +173,7 @@
       settings: { currency: "BRL", lowThreshold: 5, reorderMultiplier: 2, companyName: "Planeta Ideias", companyLogo: "" }
     };
 
-    // LINK DO SEU CHECKOUT (Coloque aqui o link do Kirvano, Kiwify, etc.)
-    const URL_CHECKOUT = "https://seulink.com/checkout";
-
-    function redirectToCheckout() {
-      window.location.href = URL_CHECKOUT;
-    }
-
-    // --- LÓGICA DE AUTENTICAÇÃO E SAAS (O coração da segurança) ---
-    // LINK BASE DO SEU CHECKOUT (Altere para o seu link real)
+  // LINK BASE DO SEU CHECKOUT (Altere para o seu link real)
     const URL_CHECKOUT = "https://pay.kirvano.com/seu-link-aqui";
 
     function redirectToCheckout() {
@@ -195,54 +187,62 @@
       }
     }
 
-    // --- LÓGICA DE AUTENTICAÇÃO E SAAS (Com gravação no banco) ---
+    // --- LÓGICA DE AUTENTICAÇÃO E SAAS (À prova de falhas) ---
     auth.onAuthStateChanged(async user => {
       if (user) {
-        docRef = db.collection("clientes_saas").doc(user.uid);
-        
-        // Verifica se já existe a data de expiração gravada na nuvem para este usuário
-        const docSnap = await docRef.get();
-        let expirationDateMs;
-        
-        if (docSnap.exists && docSnap.data().expirationDate) {
-          expirationDateMs = docSnap.data().expirationDate;
-        } else {
-          // Se for conta nova, calcula 30 dias a partir de agora e salva na nuvem
-          const now = new Date().getTime();
-          expirationDateMs = now + (30 * 24 * 60 * 60 * 1000); // 30 dias em milissegundos
+        try {
+          docRef = db.collection("clientes_saas").doc(user.uid);
           
-          // Salva a data de expiração no Firestore
-          await docRef.set({
-            expirationDate: expirationDateMs,
-            createdAt: new Date().toISOString()
-          }, { merge: true });
-        }
+          // Tenta puxar a data de expiração da nuvem
+          const docSnap = await docRef.get();
+          let expirationDateMs;
+          
+          if (docSnap.exists && docSnap.data().expirationDate) {
+            expirationDateMs = docSnap.data().expirationDate;
+          } else {
+            // Se for conta nova, calcula 30 dias e salva a data (usando merge para não apagar nada)
+            const now = new Date().getTime();
+            expirationDateMs = now + (30 * 24 * 60 * 60 * 1000); // 30 dias
+            
+            await docRef.set({
+              expirationDate: expirationDateMs,
+              createdAt: new Date().toISOString()
+            }, { merge: true });
+          }
 
-        const now = new Date().getTime();
-        const timeLeftMs = expirationDateMs - now;
-        const daysLeft = Math.ceil(timeLeftMs / (1000 * 60 * 60 * 24));
+          const now = new Date().getTime();
+          const timeLeftMs = expirationDateMs - now;
+          const daysLeft = Math.ceil(timeLeftMs / (1000 * 60 * 60 * 24));
 
-        if (daysLeft < 0) {
+          if (daysLeft < 0) {
+            document.getElementById("auth-screen").classList.add("hidden");
+            document.getElementById("renewal-screen").classList.remove("hidden");
+            document.getElementById("renewal-screen").classList.add("flex");
+            return;
+          }
+
+          document.getElementById("trial-counter").innerText = `TESTE: ${daysLeft > 0 ? daysLeft : 0} DIAS RESTANTES`;
+          
           document.getElementById("auth-screen").classList.add("hidden");
-          document.getElementById("renewal-screen").classList.remove("hidden");
-          document.getElementById("renewal-screen").classList.add("flex");
-          return;
-        }
+          document.getElementById("auth-screen").classList.remove("flex");
+          document.getElementById("renewal-screen").classList.add("hidden");
+          document.getElementById("renewal-screen").classList.remove("flex");
+          
+          startRealtimeSync();
 
-        document.getElementById("trial-counter").innerText = `TESTE: ${daysLeft > 0 ? daysLeft : 0} DIAS RESTANTES`;
-        
-        document.getElementById("auth-screen").classList.add("hidden");
-        document.getElementById("auth-screen").classList.remove("flex");
-        document.getElementById("renewal-screen").classList.add("hidden");
-        document.getElementById("renewal-screen").classList.remove("flex");
-        
-        startRealtimeSync();
+        } catch (error) {
+          // Se der falha de conexão, ele avisa e desloga para não ficar travado
+          console.error("Erro no login:", error);
+          showToast("Erro de leitura. Recarregue a página ou verifique a internet.", "error");
+          auth.signOut();
+        }
 
       } else {
-        // Deslogado
         if (activeSnapshot) activeSnapshot(); 
         document.getElementById("auth-screen").classList.remove("hidden");
         document.getElementById("auth-screen").classList.add("flex");
+        document.getElementById("renewal-screen").classList.add("hidden");
+        document.getElementById("renewal-screen").classList.remove("flex");
       }
     });
 
@@ -266,7 +266,6 @@
     function logoutSaaS() {
       if(confirm("Deseja fechar o sistema e sair da conta?")) {
         auth.signOut();
-        // Zera tudo por segurança
         AppState = { products: [], stockIn: [], stockOut: [], suppliers: [], stocktakes: [], categories: [], settings: {} };
       }
     }
@@ -277,7 +276,8 @@
       cloudStatus.innerHTML = `<span class="animate-spin">🔄</span> Baixando dados...`;
 
       activeSnapshot = docRef.onSnapshot((doc) => {
-        if (doc.exists) {
+        // Verifica se a conta já tem produtos cadastrados
+        if (doc.exists && doc.data().products && doc.data().products.length > 0) {
           const cloudData = doc.data();
           AppState.products = cloudData.products || [];
           AppState.stockIn = cloudData.stockIn || [];
@@ -293,7 +293,7 @@
           const currentTab = activeTabBtn ? activeTabBtn.dataset.tab : 'dashboard';
           renderTabContent(currentTab);
         } else {
-          // Conta Nova: Injeta dados de amostra e salva
+          // Se for uma conta totalmente vazia, cria os dados de teste
           seedSampleDataForSaaS();
         }
       }, (error) => {
@@ -301,19 +301,19 @@
       });
     }
 
-    // Salvar modificações
     async function saveToCloud() {
       if (!docRef) return;
       try {
         const cloudStatus = document.getElementById("cloud-status");
         cloudStatus.innerHTML = `<span class="animate-spin">🔄</span> Salvando...`;
-        await docRef.set(AppState);
+        
+        // O comando {merge: true} garante que a assinatura do cliente NÃO seja apagada!
+        await docRef.set(AppState, { merge: true });
       } catch (error) {
         showToast("Erro ao gravar dados no servidor.", "error");
       }
     }
 
-    // Aplicar Logo e Nome
     function applyBranding() {
       const name = AppState.settings.companyName || "ESTOQUEPRO 360";
       const logo = AppState.settings.companyLogo;
@@ -330,7 +330,6 @@
       }
     }
 
-    // Carga de Testes Personalizada (Planeta Ideias)
     async function seedSampleDataForSaaS() {
       AppState.suppliers = [
         { id: "sup_1", name: "Fábrica de Acrílicos", contact: "Vendas", email: "vendas@fab.com", phone: "(51) 9999-9999", leadTime: 5, paymentTerms: "À Vista", rating: 5 }
@@ -339,9 +338,13 @@
         { id: "prod_1", name: "Copo Long Drink 350ml", sku: "LD-BRANCO", category: "Copos Long Drink", supplierId: "sup_1", costPrice: 1.20, sellingPrice: 3.50, currentStock: 200, reorderThreshold: 50, image: "" },
         { id: "prod_2", name: "Caneca Porcelana AAA", sku: "CAN-PORC", category: "Canecas", supplierId: "", costPrice: 8.50, sellingPrice: 35.00, currentStock: 25, reorderThreshold: 10, image: "" }
       ];
-      await docRef.set(AppState);
+      
+      // Salva os dados de teste mantendo a expiração segura
+      await docRef.set(AppState, { merge: true });
       switchTab("dashboard");
     }
+
+
 
     // ==========================================
     // UTILITÁRIOS DA INTERFACE
