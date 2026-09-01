@@ -640,7 +640,125 @@
       `;
     }
     function renderReorder() { document.getElementById("tab-reorder").innerHTML = `<div class="glass-card p-10 text-center"><span class="text-4xl block mb-2">🔄</span><h3 class="font-bold text-slate-800 text-lg">Planejamento de Compras</h3><p class="text-sm text-slate-500">Painel inteligente de ressuprimento ativo na nuvem.</p></div>`; }
-    function renderSuppliers() { document.getElementById("tab-suppliers").innerHTML = `<div class="glass-card p-10 text-center"><span class="text-4xl block mb-2">🏭</span><h3 class="font-bold text-slate-800 text-lg">Gestão de Fornecedores</h3><p class="text-sm text-slate-500">Módulo de contatos e pedidos de compras.</p></div>`; }
+    // ==========================================
+    // TAB: FORNECEDORES (SUPPLIERS)
+    // ==========================================
+    function renderSuppliers() {
+      const container = document.getElementById("tab-suppliers");
+      const count = AppState.suppliers.length;
+      container.innerHTML = `
+        <div class="flex items-center justify-between gap-4 mb-4">
+          <p class="text-sm text-slate-500">Mapeie contatos de fornecedores, ratings de pontualidade e prazos logísticos.</p>
+          <button onclick="showSupplierForm()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-4 py-2 rounded-lg transition-all flex items-center gap-1 flex-shrink-0 shadow-md">
+            <span>+</span> Novo Fornecedor
+          </button>
+        </div>
+        ${count === 0 ? `
+          <div class="glass-card p-12 text-center text-slate-400">
+            <span class="text-4xl block mb-2">🏭</span>
+            Nenhum fornecedor cadastrado. Toque em "+ Novo Fornecedor" para arquivar seus parceiros de compra.
+          </div>
+        ` : `
+          <div class="glass-card rounded-2xl overflow-hidden overflow-x-auto border">
+            <table class="w-full text-sm text-left text-slate-600 whitespace-nowrap">
+              <thead class="text-xs uppercase bg-slate-100 border-b text-slate-600 font-bold">
+                <tr><th class="px-6 py-3.5">Razão Social / Nome</th><th class="px-6 py-3.5">Contato Direto</th><th class="px-6 py-3.5">E-mail / Telefone</th><th class="px-6 py-3.5 text-center">Vencimento Comum</th><th class="px-6 py-3.5 text-center">Tempo de Espera</th><th class="px-6 py-3.5 text-center">Confiabilidade</th><th class="px-6 py-3.5 text-center">Ações</th></tr>
+              </thead>
+              <tbody class="divide-y bg-white">
+                ${AppState.suppliers.map(s => {
+                  let stars = "⭐".repeat(s.rating || 3);
+                  return `
+                    <tr class="hover:bg-slate-50/50 transition-colors">
+                      <td class="px-6 py-4"><strong class="font-bold text-slate-800 block text-sm">${s.name}</strong>${s.website ? `<a href="https://${s.website}" target="_blank" class="text-xs text-indigo-500 hover:underline block">${s.website}</a>` : ""}</td>
+                      <td class="px-6 py-4 text-slate-700 font-semibold">${s.contact || "-"}</td>
+                      <td class="px-6 py-4 text-xs"><span class="block">${s.email || "-"}</span><span class="block text-slate-400 mt-1">${s.phone || "-"}</span></td>
+                      <td class="px-6 py-4 text-center text-xs font-semibold uppercase text-slate-500">${s.paymentTerms || "À Vista"}</td>
+                      <td class="px-6 py-4 text-center font-bold text-slate-900 font-mono text-xs">${s.leadTime || "N/A"} dias</td>
+                      <td class="px-6 py-4 text-center text-xs">${stars}</td>
+                      <td class="px-6 py-4 text-center">
+                        <div class="inline-flex gap-1">
+                          <button onclick="showSupplierForm('${s.id}')" class="text-slate-500 hover:text-indigo-600 bg-slate-100 hover:bg-slate-200 p-1.5 rounded transition-colors text-xs" title="Editar">✏️</button>
+                          <button onclick="deleteSupplier('${s.id}')" class="text-slate-500 hover:text-red-600 bg-slate-100 hover:bg-slate-200 p-1.5 rounded transition-colors text-xs" title="Excluir">🗑️</button>
+                        </div>
+                      </td>
+                    </tr>
+                  `;
+                }).join("")}
+              </tbody>
+            </table>
+          </div>
+        `}
+      `;
+    }
+
+    function showSupplierForm(supplierId = null) {
+      let s = { id: "", name: "", contact: "", email: "", phone: "", website: "", leadTime: 7, paymentTerms: "À Vista", rating: 5, notes: "" };
+      if (supplierId) s = AppState.suppliers.find(item => item.id === supplierId) || s;
+      const title = s.id ? "✏️ Editar Fornecedor" : "🏭 Cadastrar Fornecedor";
+      const formHtml = `
+        <form id="supplier-modal-form" class="space-y-4">
+          <input type="hidden" id="form-s-id" value="${s.id}" />
+          <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-name">Razão Social / Nome Fantasia *</label><input type="text" id="form-s-name" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" value="${s.name}" required /></div>
+          <div class="grid grid-cols-2 gap-4"><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-contact">Nome do Representante</label><input type="text" id="form-s-contact" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" value="${s.contact}" /></div><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-phone">Telefone comercial</label><input type="text" id="form-s-phone" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" value="${s.phone}" placeholder="(XX) XXXXX-XXXX" /></div></div>
+          <div class="grid grid-cols-2 gap-4"><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-email">E-mail para cotações</label><input type="email" id="form-s-email" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" value="${s.email}" placeholder="vendas@fornecedor.com" /></div><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-web">Página web (Website)</label><input type="text" id="form-s-web" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" value="${s.website}" placeholder="www.fornecedor.com" /></div></div>
+          <div class="grid grid-cols-3 gap-4">
+            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-lead">Lead Time (dias)</label><input type="number" id="form-s-lead" min="0" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50 font-mono text-center" value="${s.leadTime}" /></div>
+            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-pay">Vencimento Fatura</label>
+              <select id="form-s-pay" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50 bg-white">
+                <option value="À Vista" ${s.paymentTerms === 'À Vista' ? 'selected' : ''}>À Vista</option>
+                <option value="15 Dias" ${s.paymentTerms === '15 Dias' ? 'selected' : ''}>15 Dias</option>
+                <option value="30 Dias" ${s.paymentTerms === '30 Dias' ? 'selected' : ''}>30 Dias</option>
+              </select>
+            </div>
+            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-rate">Avaliação Rating</label>
+              <select id="form-s-rate" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50 bg-white">
+                <option value="5" ${s.rating == 5 ? 'selected' : ''}>⭐⭐⭐⭐⭐</option>
+                <option value="4" ${s.rating == 4 ? 'selected' : ''}>⭐⭐⭐⭐</option>
+                <option value="3" ${s.rating == 3 ? 'selected' : ''}>⭐⭐⭐</option>
+              </select>
+            </div>
+          </div>
+          <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-notes">Notas / Condições</label><input type="text" id="form-s-notes" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" value="${s.notes}" /></div>
+        </form>
+      `;
+      openModal(title, formHtml, saveSupplierForm);
+    }
+
+    function saveSupplierForm() {
+      const id = document.getElementById("form-s-id").value;
+      const name = document.getElementById("form-s-name").value;
+      if (!name) { showToast("O Razão Social/Nome Fantasia é obrigatório!", "error"); return; }
+
+      const payload = {
+        name: name, contact: document.getElementById("form-s-contact").value, phone: document.getElementById("form-s-phone").value,
+        email: document.getElementById("form-s-email").value, website: document.getElementById("form-s-web").value,
+        leadTime: parseInt(document.getElementById("form-s-lead").value) || 0, paymentTerms: document.getElementById("form-s-pay").value,
+        rating: parseInt(document.getElementById("form-s-rate").value) || 3, notes: document.getElementById("form-s-notes").value
+      };
+
+      if (id) {
+        const s = AppState.suppliers.find(item => item.id === id);
+        if (s) Object.assign(s, payload);
+        showToast("Fornecedor atualizado!");
+      } else {
+        payload.id = "sup_" + Math.random().toString(36).substr(2, 9);
+        AppState.suppliers.push(payload);
+        showToast("Fornecedor cadastrado com sucesso!");
+      }
+      saveToCloud(); // <-- Agora salva na nuvem SaaS!
+      closeModal();
+      renderSuppliers();
+    }
+
+    function deleteSupplier(id) {
+      if (confirm("Deseja apagar este fornecedor? Seus produtos permanecerão sem vínculo.")) {
+        AppState.suppliers = AppState.suppliers.filter(s => s.id !== id);
+        AppState.products.forEach(p => { if (p.supplierId === id) p.supplierId = ""; });
+        saveToCloud();
+        showToast("Fornecedor excluído!");
+        renderSuppliers();
+      }
+    }
 
     // ==========================================
     // TAB: CONFIGURAÇÕES E WHITE-LABEL
