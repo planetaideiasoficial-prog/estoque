@@ -184,9 +184,8 @@
       hasUnsavedChanges: false
     };
 
-    // Helper functions for state
-    async function saveToLocalStorage() {
-      // 1. Salva localmente (cache de segurança)
+    // Helper functions for stateasync function saveToLocalStorage() {
+      // 1. Mantém o backup no cache do navegador por segurança (offline)
       localStorage.setItem("estoquepro_products", JSON.stringify(AppState.products));
       localStorage.setItem("estoquepro_stockin", JSON.stringify(AppState.stockIn));
       localStorage.setItem("estoquepro_stockout", JSON.stringify(AppState.stockOut));
@@ -195,16 +194,27 @@
       localStorage.setItem("estoquepro_categories", JSON.stringify(AppState.categories));
       localStorage.setItem("estoquepro_settings", JSON.stringify(AppState.settings));
 
-      // 2. Salva na nuvem (Firebase)
+      // 2. Envia a atualização para a Nuvem (Firebase)
       try {
-        document.getElementById("cloud-status").innerHTML = `<span class="animate-spin">🔄</span> Salvando...`;
+        // Muda o aviso lá no topo para "Salvando..."
+        const cloudStatus = document.getElementById("cloud-status");
+        if (cloudStatus) cloudStatus.innerHTML = `<span class="animate-spin">🔄</span> Salvando...`;
+
+        // .set() substitui o documento na nuvem pelo estado atualizado
         await docRef.set(AppState);
-        setTimeout(() => {
-          document.getElementById("cloud-status").innerHTML = `<span class="animate-pulse">☁️</span> Sincronizado`;
-        }, 800);
+        
+        // Volta o aviso para "Sincronizado" após o sucesso
+        if (cloudStatus) {
+          setTimeout(() => {
+            cloudStatus.innerHTML = `<span class="animate-pulse">☁️</span> Sincronizado`;
+          }, 800);
+        }
       } catch (error) {
         console.error("Erro ao salvar no Firebase: ", error);
-        document.getElementById("cloud-status").innerHTML = `<span class="text-rose-600">⚠️ Erro Nuvem</span>`;
+        showToast("Erro ao sincronizar com a nuvem! Verifique sua conexão.", "error");
+        
+        const cloudStatus = document.getElementById("cloud-status");
+        if (cloudStatus) cloudStatus.innerHTML = `<span class="text-rose-600 font-bold">⚠️ Falha na Nuvem</span>`;
       }
     }
 
@@ -2023,37 +2033,55 @@
       }
     }
 
-    // Inicialização e Carregamento (Firebase First)
-    window.onload = async function() {
-      document.getElementById("cloud-status").innerHTML = `<span class="animate-spin">🔄</span> Carregando nuvem...`;
+    //// Inicialização e Carregamento (Firebase Real-time)
+    window.onload = function() {
+      const cloudStatus = document.getElementById("cloud-status");
+      if (cloudStatus) cloudStatus.innerHTML = `<span class="animate-spin">🔄</span> Conectando nuvem...`;
       
       try {
-        const docSnap = await docRef.get();
-        if (docSnap.exists) {
-          const cloudData = docSnap.data();
-          AppState.products = cloudData.products || [];
-          AppState.stockIn = cloudData.stockIn || [];
-          AppState.stockOut = cloudData.stockOut || [];
-          AppState.suppliers = cloudData.suppliers || [];
-          AppState.stocktakes = cloudData.stocktakes || [];
-          AppState.categories = cloudData.categories || ["Sem Categoria", "Copos e Taças", "Canecas", "Camisetas", "Brindes Corporativos", "Insumos", "Embalagens", "Outros"];
-          AppState.settings = cloudData.settings || { currency: "BRL", lowThreshold: 5, reorderMultiplier: 2, showReminder: true };
-          
-          document.getElementById("cloud-status").innerHTML = `<span class="animate-pulse">☁️</span> Sincronizado`;
-        } else {
-          // Documento não existe ainda na nuvem, gerar carga inicial customizada
-          seedSampleData(false);
-          document.getElementById("cloud-status").innerHTML = `<span class="animate-pulse">☁️</span> Sincronizado`;
-        }
+        // onSnapshot cria um túnel aberto com a nuvem. Qualquer mudança atualiza a tela na hora.
+        docRef.onSnapshot((doc) => {
+          if (doc.exists) {
+            const cloudData = doc.data();
+            
+            // 1. Atualiza os dados locais com o que veio da nuvem
+            AppState.products = cloudData.products || [];
+            AppState.stockIn = cloudData.stockIn || [];
+            AppState.stockOut = cloudData.stockOut || [];
+            AppState.suppliers = cloudData.suppliers || [];
+            AppState.stocktakes = cloudData.stocktakes || [];
+            AppState.categories = cloudData.categories || ["Sem Categoria", "Copos e Taças", "Canecas", "Camisetas", "Brindes Corporativos", "Insumos", "Embalagens", "Outros"];
+            AppState.settings = cloudData.settings || { currency: "BRL", lowThreshold: 5, reorderMultiplier: 2, showReminder: true };
+            
+            if (cloudStatus) cloudStatus.innerHTML = `<span class="animate-pulse">☁️</span> Sincronizado`;
+
+            // 2. Descobre qual aba está aberta e atualiza o visual dela automaticamente
+            const activeTabBtn = document.querySelector('.sidebar-active');
+            const currentTab = activeTabBtn ? activeTabBtn.dataset.tab : 'dashboard';
+            renderTabContent(currentTab);
+            
+          } else {
+            // Documento não existe ainda na nuvem, gerar carga inicial customizada
+            seedSampleData(false);
+            if (cloudStatus) cloudStatus.innerHTML = `<span class="animate-pulse">☁️</span> Sincronizado`;
+          }
+        }, (error) => {
+          // Em caso de erro (ex: sem internet), tenta carregar do modo offline
+          console.error("Erro no Firebase Realtime:", error);
+          if (cloudStatus) cloudStatus.innerHTML = `<span class="text-amber-600 font-bold">⚠️ Offline (Modo Local)</span>`;
+          loadFromLocalStorage();
+          if (AppState.products.length === 0) {
+            seedSampleData(false);
+          }
+          switchTab("dashboard");
+        });
+
+        // Abre o dashboard quando entra na página pela primeira vez
+        switchTab("dashboard");
+
       } catch (error) {
-        console.error("Erro ao carregar Firebase. Fallback para LocalStorage:", error);
-        document.getElementById("cloud-status").innerHTML = `<span class="text-amber-600 font-bold">⚠️ Offline (Modo Local)</span>`;
-        loadFromLocalStorage();
-        if (AppState.products.length === 0) {
-          seedSampleData(false);
-        }
+        console.error("Erro geral na conexão com Firebase:", error);
       }
-      switchTab("dashboard");
     };
   </script>
 </body>
