@@ -184,7 +184,8 @@
       hasUnsavedChanges: false
     };
 
-    // Helper functions for stateasync function saveToLocalStorage() {
+    // Helper functions for state
+async function saveToLocalStorage() {
       // 1. Mantém o backup no cache do navegador por segurança (offline)
       localStorage.setItem("estoquepro_products", JSON.stringify(AppState.products));
       localStorage.setItem("estoquepro_stockin", JSON.stringify(AppState.stockIn));
