@@ -112,7 +112,7 @@
       </div>
       <div class="flex items-center gap-2">
         <span id="cloud-status" class="text-xs font-bold text-emerald-600 flex items-center gap-1 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">
-          <span class="animate-pulse">☁️</span> Sincronizado
+          <span class="animate-pulse">☁️</span> Conectando...
         </span>
         <button onclick="exportBackup()" class="text-xs font-medium border border-slate-200 hover:bg-slate-50 text-slate-700 px-3 py-2 rounded-lg transition-colors">💾 Backup</button>
       </div>
@@ -131,7 +131,6 @@
 
     <!-- Main Views (Tab Content) -->
     <main id="main-content" class="flex-1 p-6 space-y-6">
-      <!-- Seções serão renderizadas e controladas aqui por script JS -->
       <div id="tab-dashboard" class="tab-content space-y-6"></div>
       <div id="tab-inventory" class="tab-content space-y-6 hidden"></div>
       <div id="tab-stock-in" class="tab-content space-y-6 hidden"></div>
@@ -185,7 +184,7 @@
     };
 
     // Helper functions for state
-async function saveToLocalStorage() {
+    async function saveToLocalStorage() {
       // 1. Mantém o backup no cache do navegador por segurança (offline)
       localStorage.setItem("estoquepro_products", JSON.stringify(AppState.products));
       localStorage.setItem("estoquepro_stockin", JSON.stringify(AppState.stockIn));
@@ -197,14 +196,11 @@ async function saveToLocalStorage() {
 
       // 2. Envia a atualização para a Nuvem (Firebase)
       try {
-        // Muda o aviso lá no topo para "Salvando..."
         const cloudStatus = document.getElementById("cloud-status");
         if (cloudStatus) cloudStatus.innerHTML = `<span class="animate-spin">🔄</span> Salvando...`;
 
-        // .set() substitui o documento na nuvem pelo estado atualizado
         await docRef.set(AppState);
         
-        // Volta o aviso para "Sincronizado" após o sucesso
         if (cloudStatus) {
           setTimeout(() => {
             cloudStatus.innerHTML = `<span class="animate-pulse">☁️</span> Sincronizado`;
@@ -234,7 +230,6 @@ async function saveToLocalStorage() {
       };
     }
 
-    // Dynamic Modal Handlers
     function openModal(title, formHtml, onConfirm = null) {
       let overlay = document.getElementById("global-modal-overlay");
       if (!overlay) {
@@ -285,7 +280,6 @@ async function saveToLocalStorage() {
       }
     }
 
-    // Formatting Helpers
     function formatCurrency(amount) {
       return (amount || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
     }
@@ -297,10 +291,6 @@ async function saveToLocalStorage() {
         return `${parts[2]}/${parts[1]}/${parts[0]}`;
       }
       return dateStr;
-    }
-
-    function triggerImport() {
-      document.getElementById("hidden-import-file").click();
     }
 
     function dismissUnsavedBanner() {
@@ -337,7 +327,6 @@ async function saveToLocalStorage() {
       }, 4000);
     }
 
-    // Interactive Demo Data Seeder - Customizado
     function seedSampleData(isManual = false) {
       AppState.suppliers = [
         { id: "sup_1", name: "Fábrica de Acrílicos Sul", contact: "Carlos", email: "vendas@acrilicossul.com", phone: "(51) 98765-4321", website: "www.acrilicossul.com", leadTime: 5, paymentTerms: "30 Dias", rating: 5, notes: "Fornecedor de copos long drink e taças" },
@@ -381,7 +370,6 @@ async function saveToLocalStorage() {
       }
     }
 
-    // View Routing System
     function switchTab(tabId) {
       document.querySelectorAll(".nav-item").forEach(btn => {
         btn.classList.remove("sidebar-active");
@@ -438,9 +426,6 @@ async function saveToLocalStorage() {
       }
     }
 
-    // ==========================================
-    // TAB: ANALYTIS & DASHBOARD (PAINEL)
-    // ==========================================
     function renderDashboard() {
       const container = document.getElementById("tab-dashboard");
       
@@ -617,9 +602,6 @@ async function saveToLocalStorage() {
       });
     }
 
-    // ==========================================
-    // TAB: PRODUCT CATALOGUE (PRODUTOS)
-    // ==========================================
     let inventoryFilter = "all";
     let inventoryCategoryFilter = "all";
     let inventorySearchQuery = "";
@@ -2034,7 +2016,7 @@ async function saveToLocalStorage() {
       }
     }
 
-    //// Inicialização e Carregamento (Firebase Real-time)
+    // Inicialização e Carregamento (Firebase Real-time)
     window.onload = function() {
       const cloudStatus = document.getElementById("cloud-status");
       if (cloudStatus) cloudStatus.innerHTML = `<span class="animate-spin">🔄</span> Conectando nuvem...`;
