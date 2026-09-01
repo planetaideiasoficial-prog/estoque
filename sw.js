@@ -1,4 +1,4 @@
-const CACHE_NAME = 'estoquepro-saas-v2';
+const CACHE_NAME = 'estoquepro-saas-v3';
 const urlsToCache = [
   './index.html',
   './manifest.json'
