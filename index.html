@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ESTOQUEPRO 360 - SaaS</title>
+  <title>ESTOQUE PRO- SaaS</title>
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#0f172a">
   
@@ -21,7 +21,9 @@
     .glass-card { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(8px); border: 1px solid rgba(226, 232, 240, 0.8); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
     .sidebar-active { background-color: rgba(255, 255, 255, 0.1); border-left: 4px solid var(--primary); }
   </style>
+  
 </head>
+
 <body class="flex min-h-screen text-slate-800">
 
   <!-- TELA 1: LOGIN E CADASTRO -->
@@ -29,7 +31,7 @@
     <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
       <div class="text-center mb-8">
         <span class="text-4xl block mb-2">📦</span>
-        <h1 class="text-2xl font-bold text-slate-800 uppercase">EstoquePro 360</h1>
+        <h1 class="text-2xl font-bold text-slate-800 uppercase">Estoque Pro</h1>
         <p class="text-sm text-slate-500 mt-1">Sua gestão em nuvem</p>
       </div>
       <form id="auth-form" class="space-y-4" onsubmit="event.preventDefault(); handleAuth();">
@@ -43,7 +45,7 @@
         </div>
         <div class="pt-4 flex flex-col gap-3">
           <button type="submit" id="btn-login" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg transition-colors shadow-lg">Entrar no Sistema</button>
-          <button type="button" onclick="handleSignUp()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-lg transition-colors">Criar Nova Conta (30 dias)</button>
+          <button type="button" onclick="handleSignUp()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-lg transition-colors">Criar Nova Conta</button>
         </div>
       </form>
     </div>
@@ -53,9 +55,9 @@
   <div id="renewal-screen" class="fixed inset-0 bg-slate-900 z-[110] hidden items-center justify-center p-4 transition-opacity duration-300">
     <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md text-center">
       <span class="text-5xl block mb-4">⏳</span>
-      <h1 class="text-2xl font-bold text-rose-600 mb-2">Período de Teste Expirado</h1>
+      <h1 class="text-2xl font-bold text-rose-600 mb-2">Tempo de Acesso Expirado</h1>
       <p class="text-sm text-slate-600 mb-6 leading-relaxed">
-        Os seus 30 dias de acesso ao EstoquePro 360 chegaram ao fim. Seus dados estão salvos em segurança, mas para continuar acessando o painel, é necessário renovar sua assinatura.
+        Os seus 30 dias de acesso ao Estoque Pro  chegaram ao fim. Seus dados estão salvos em segurança, mas para continuar acessando o painel, é necessário renovar sua assinatura.
       </p>
       <button onclick="redirectToCheckout()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition-colors shadow-lg mb-3">
         💳 Renovar Assinatura Agora
@@ -72,7 +74,7 @@
     <div class="p-6 border-b border-slate-800 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <div id="sidebar-logo" class="text-2xl h-8 w-8 flex items-center justify-center bg-slate-800 rounded-lg overflow-hidden">📦</div>
-        <h1 id="sidebar-brand-name" class="font-bold text-sm tracking-tight leading-tight text-white uppercase">ESTOQUEPRO</h1>
+        <h1 id="sidebar-brand-name" class="font-bold text-sm tracking-tight leading-tight text-white uppercase">ESTOQUE PRO</h1>
       </div>
       <button class="md:hidden text-white text-xl" onclick="toggleSidebar()">✕</button>
     </div>
@@ -99,7 +101,7 @@
 
     <!-- Rodapé Sidebar -->
     <div class="p-4 border-t border-slate-800 space-y-2">
-      <div id="trial-counter" class="text-center text-[10px] font-bold text-amber-500 mb-2 bg-amber-500/10 py-1.5 rounded">TESTE: 30 DIAS RESTANTES</div>
+      <div id="trial-counter" class="text-center text-[10px] font-bold text-amber-500 mb-2 bg-amber-500/10 py-1.5 rounded">ACESSO: VERIFICANDO...</div>
       <button onclick="logoutSaaS()" class="w-full bg-slate-800 hover:bg-rose-900 text-slate-300 hover:text-white font-medium py-2 px-3 rounded-lg text-sm flex items-center justify-center gap-2 transition-all">
         🚪 Sair da Conta
       </button>
@@ -221,7 +223,7 @@
             return;
           }
 
-          document.getElementById("trial-counter").innerText = `TESTE: ${daysLeft > 0 ? daysLeft : 0} DIAS RESTANTES`;
+          document.getElementById("trial-counter").innerText = `ACESSO: ${daysLeft > 0 ? daysLeft : 0} DIAS RESTANTES`;
           
           document.getElementById("auth-screen").classList.add("hidden");
           document.getElementById("auth-screen").classList.remove("flex");
@@ -259,7 +261,7 @@
       if(pass.length < 6) { showToast("A senha precisa ter no mínimo 6 caracteres.", "error"); return; }
       
       auth.createUserWithEmailAndPassword(email, pass)
-        .then(() => showToast("Conta criada! Seus 30 dias começam agora."))
+        .then(() => showToast("Conta criada! Seu acesso foi liberado com sucesso."))
         .catch(error => showToast("Erro: O e-mail já está em uso ou é inválido.", "error"));
     }
 
@@ -315,7 +317,7 @@
     }
 
     function applyBranding() {
-      const name = AppState.settings.companyName || "ESTOQUEPRO 360";
+      const name = AppState.settings.companyName || "ESTOQUE PRO ";
       const logo = AppState.settings.companyLogo;
 
       document.getElementById("sidebar-brand-name").innerText = name;
@@ -525,8 +527,9 @@
     let searchTimeout = null; function setInvSearch(s) { inventorySearchQuery = s; clearTimeout(searchTimeout); searchTimeout = setTimeout(renderInventory, 150); }
 
     function showProductForm(productId = null) {
-      let prod = { id: "", name: "", sku: "", category: AppState.categories[0], costPrice: 0, sellingPrice: 0, currentStock: 0, reorderThreshold: 5, image: "" };
+      let prod = { id: "", name: "", sku: "", category: AppState.categories[0], supplierId: "", costPrice: 0, sellingPrice: 0, currentStock: 0, reorderThreshold: 5, image: "" };
       if (productId) prod = AppState.products.find(p => p.id === productId) || prod;
+      
       const formHtml = `
         <form class="space-y-4">
           <input type="hidden" id="form-p-id" value="${prod.id}" />
@@ -534,9 +537,10 @@
             <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nome do Produto</label><input type="text" id="form-p-name" class="w-full border rounded px-3 py-2 text-sm bg-slate-50 outline-none" value="${prod.name}" required /></div>
             <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">SKU ID</label><input type="text" id="form-p-sku" class="w-full border rounded px-3 py-2 text-sm bg-slate-50 outline-none uppercase font-mono" value="${prod.sku}" required /></div>
           </div>
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-3 gap-4">
             <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Categoria</label><select id="form-p-cat" class="w-full border rounded px-3 py-2 text-sm bg-white outline-none">${AppState.categories.map(c => `<option value="${c}" ${prod.category === c ? "selected" : ""}>${c}</option>`).join("")}</select></div>
-            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Aviso (Estoque Mínimo)</label><input type="number" id="form-p-limit" class="w-full border rounded px-3 py-2 text-sm bg-slate-50 outline-none" value="${prod.reorderThreshold}" /></div>
+            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fornecedor</label><select id="form-p-sup" class="w-full border rounded px-3 py-2 text-sm bg-white outline-none"><option value="">Nenhum / Próprio</option>${AppState.suppliers.map(s => `<option value="${s.id}" ${prod.supplierId === s.id ? "selected" : ""}>${s.name}</option>`).join("")}</select></div>
+            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Aviso (Mínimo)</label><input type="number" id="form-p-limit" class="w-full border rounded px-3 py-2 text-sm bg-slate-50 outline-none" value="${prod.reorderThreshold}" /></div>
           </div>
           <div class="grid grid-cols-3 gap-4">
             <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Custo (R$)</label><input type="number" step="0.01" id="form-p-cost" class="w-full border rounded px-3 py-2 text-sm bg-slate-50 outline-none" value="${prod.costPrice}" /></div>
@@ -557,7 +561,9 @@
       openModal(prod.id ? "✏️ Editar Produto" : "🎁 Novo Produto", formHtml, () => {
         const payload = {
           name: document.getElementById("form-p-name").value, sku: document.getElementById("form-p-sku").value.toUpperCase(),
-          category: document.getElementById("form-p-cat").value, costPrice: parseFloat(document.getElementById("form-p-cost").value) || 0,
+          category: document.getElementById("form-p-cat").value,
+          supplierId: document.getElementById("form-p-sup").value,
+          costPrice: parseFloat(document.getElementById("form-p-cost").value) || 0,
           sellingPrice: parseFloat(document.getElementById("form-p-sell").value) || 0, reorderThreshold: parseInt(document.getElementById("form-p-limit").value) || 5,
           image: document.getElementById("form-p-img-base64").value
         };
@@ -849,10 +855,33 @@
 
     async function factoryResetDatabase() {
       if (confirm("ATENÇÃO PERIGO! Você tem certeza que deseja restaurar o sistema? Todos os dados da conta serão apagados da nuvem.")) {
-        AppState = { products: [], stockIn: [], stockOut: [], suppliers: [], stocktakes: [], categories: ["Sem Categoria", "Copos Long Drink", "Canecas", "Camisetas"], settings: { currency: "BRL", lowThreshold: 5, reorderMultiplier: 2, companyName: "ESTOQUEPRO" } };
+        AppState = { products: [], stockIn: [], stockOut: [], suppliers: [], stocktakes: [], categories: ["Sem Categoria", "Copos Long Drink", "Canecas", "Camisetas"], settings: { currency: "BRL", lowThreshold: 5, reorderMultiplier: 2, companyName: "ESTOQUE PRO" } };
         await saveToCloud(); showToast("Dados apagados!"); switchTab("dashboard");
       }
     }
+
+    // ==========================================
+    // SISTEMA DE SEGURANÇA ANTICÓPIA / ANTI-INSPEÇÃO
+    // ==========================================
+    document.addEventListener('contextmenu', event => event.preventDefault()); // Bloqueia Botão Direito
+
+    document.addEventListener('keydown', event => {
+      // Bloqueia F12
+      if (event.key === 'F12' || event.keyCode === 123) {
+        event.preventDefault();
+        return false;
+      }
+      // Bloqueia Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C (Inspecionar)
+      if (event.ctrlKey && event.shiftKey && (event.key === 'I' || event.key === 'J' || event.key === 'C' || event.key === 'i' || event.key === 'j' || event.key === 'c')) {
+        event.preventDefault();
+        return false;
+      }
+      // Bloqueia Ctrl+U (Ver código fonte)
+      if (event.ctrlKey && (event.key === 'U' || event.key === 'u')) {
+        event.preventDefault();
+        return false;
+      }
+    });
   </script>
 </body>
 </html>
