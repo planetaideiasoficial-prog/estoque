@@ -355,14 +355,14 @@
       let overlay = document.getElementById("global-modal-overlay");
       if (!overlay) {
         overlay = document.createElement("div"); overlay.id = "global-modal-overlay";
-        overlay.className = "fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-all duration-300";
+        overlay.className = "fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 transition-all duration-300";
         document.body.appendChild(overlay);
       }
       overlay.innerHTML = `
-        <div class="bg-white rounded-xl shadow-xl border border-slate-100 max-w-lg w-full transform transition-all duration-300 scale-95 opacity-0 flex flex-col max-h-[90vh]">
-          <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between"><h3 class="font-bold text-lg text-slate-800">${title}</h3><button onclick="closeModal()" class="text-slate-400 hover:text-slate-700 text-xl font-bold p-1">✕</button></div>
-          <div class="px-6 py-5 overflow-y-auto flex-1 text-sm text-slate-600 leading-relaxed space-y-4">${formHtml}</div>
-          <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-2 rounded-b-xl"><button onclick="closeModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium rounded-lg">Cancelar</button><button id="modal-submit-btn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg">${onConfirm ? "Confirmar" : "Salvar"}</button></div>
+        <div class="bg-white rounded-xl shadow-xl border border-slate-100 max-w-lg w-full transform transition-all duration-300 scale-95 opacity-0 flex flex-col max-h-[95vh] sm:max-h-[90vh]">
+          <div class="px-4 sm:px-6 py-4 border-b border-slate-200 flex items-center justify-between"><h3 class="font-bold text-lg text-slate-800">${title}</h3><button onclick="closeModal()" class="text-slate-400 hover:text-slate-700 text-2xl font-bold p-1 leading-none">&times;</button></div>
+          <div class="px-4 sm:px-6 py-5 overflow-y-auto flex-1 text-sm text-slate-600 leading-relaxed space-y-4">${formHtml}</div>
+          <div class="px-4 sm:px-6 py-4 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-2 rounded-b-xl"><button onclick="closeModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium rounded-lg w-full sm:w-auto">Cancelar</button><button id="modal-submit-btn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg w-full sm:w-auto">${onConfirm ? "Confirmar" : "Salvar"}</button></div>
         </div>`;
       setTimeout(() => { overlay.firstElementChild.classList.remove("scale-95", "opacity-0"); overlay.firstElementChild.classList.add("scale-100", "opacity-100"); }, 50);
       document.getElementById("modal-submit-btn").onclick = () => { if (onConfirm) onConfirm(); else closeModal(); };
@@ -526,23 +526,23 @@
     function setInvTabFilter(f) { inventoryFilter = f; renderInventory(); }
     let searchTimeout = null; function setInvSearch(s) { inventorySearchQuery = s; clearTimeout(searchTimeout); searchTimeout = setTimeout(renderInventory, 150); }
 
-    function showProductForm(productId = null) {
+   function showProductForm(productId = null) {
       let prod = { id: "", name: "", sku: "", category: AppState.categories[0], supplierId: "", costPrice: 0, sellingPrice: 0, currentStock: 0, reorderThreshold: 5, image: "" };
       if (productId) prod = AppState.products.find(p => p.id === productId) || prod;
       
       const formHtml = `
         <form class="space-y-4">
           <input type="hidden" id="form-p-id" value="${prod.id}" />
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nome do Produto</label><input type="text" id="form-p-name" class="w-full border rounded px-3 py-2 text-sm bg-slate-50 outline-none" value="${prod.name}" required /></div>
             <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">SKU ID</label><input type="text" id="form-p-sku" class="w-full border rounded px-3 py-2 text-sm bg-slate-50 outline-none uppercase font-mono" value="${prod.sku}" required /></div>
           </div>
-          <div class="grid grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Categoria</label><select id="form-p-cat" class="w-full border rounded px-3 py-2 text-sm bg-white outline-none">${AppState.categories.map(c => `<option value="${c}" ${prod.category === c ? "selected" : ""}>${c}</option>`).join("")}</select></div>
             <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fornecedor</label><select id="form-p-sup" class="w-full border rounded px-3 py-2 text-sm bg-white outline-none"><option value="">Nenhum / Próprio</option>${AppState.suppliers.map(s => `<option value="${s.id}" ${prod.supplierId === s.id ? "selected" : ""}>${s.name}</option>`).join("")}</select></div>
             <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Aviso (Mínimo)</label><input type="number" id="form-p-limit" class="w-full border rounded px-3 py-2 text-sm bg-slate-50 outline-none" value="${prod.reorderThreshold}" /></div>
           </div>
-          <div class="grid grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Custo (R$)</label><input type="number" step="0.01" id="form-p-cost" class="w-full border rounded px-3 py-2 text-sm bg-slate-50 outline-none" value="${prod.costPrice}" /></div>
             <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Venda (R$)</label><input type="number" step="0.01" id="form-p-sell" class="w-full border rounded px-3 py-2 text-sm bg-slate-50 outline-none" value="${prod.sellingPrice}" /></div>
             <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Saldo Atual</label><input type="number" id="form-p-qty" class="w-full border rounded px-3 py-2 text-sm bg-slate-100 outline-none" value="${prod.currentStock}" ${prod.id ? "disabled" : ""} /></div>
@@ -612,9 +612,9 @@
       `;
     }
     
-    function showStockInForm() {
+   function showStockInForm() {
       if(AppState.products.length === 0) return showToast("Cadastre um produto antes", "error");
-      const formHtml = `<form class="space-y-4"><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Produto</label><select id="form-in-prod" class="w-full border rounded-lg p-2.5 bg-slate-50 outline-none"><option value="">Selecione...</option>${AppState.products.map(p=>`<option value="${p.id}">${p.name} (Atual: ${p.currentStock})</option>`).join("")}</select></div><div class="grid grid-cols-2 gap-4"><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Qtd Entrando</label><input type="number" id="form-in-qty" class="w-full border rounded-lg p-2.5 bg-slate-50 outline-none" required /></div><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Data</label><input type="date" id="form-in-date" class="w-full border rounded-lg p-2.5 bg-slate-50 outline-none" value="${new Date().toISOString().split("T")[0]}" /></div></div><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">O.C. / Nota / Motivo</label><input type="text" id="form-in-notes" class="w-full border rounded-lg p-2.5 bg-slate-50 outline-none" /></div></form>`;
+      const formHtml = `<form class="space-y-4"><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Produto</label><select id="form-in-prod" class="w-full border rounded-lg p-2.5 bg-slate-50 outline-none"><option value="">Selecione...</option>${AppState.products.map(p=>`<option value="${p.id}">${p.name} (Atual: ${p.currentStock})</option>`).join("")}</select></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Qtd Entrando</label><input type="number" id="form-in-qty" class="w-full border rounded-lg p-2.5 bg-slate-50 outline-none" required /></div><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Data</label><input type="date" id="form-in-date" class="w-full border rounded-lg p-2.5 bg-slate-50 outline-none" value="${new Date().toISOString().split("T")[0]}" /></div></div><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">O.C. / Nota / Motivo</label><input type="text" id="form-in-notes" class="w-full border rounded-lg p-2.5 bg-slate-50 outline-none" /></div></form>`;
       openModal("📥 Registrar Entrada", formHtml, () => {
         const pId = document.getElementById("form-in-prod").value; const qty = parseInt(document.getElementById("form-in-qty").value);
         if(!pId || !qty || qty <= 0) return showToast("Selecione o produto e a quantidade", "error");
@@ -624,22 +624,9 @@
       });
     }
 
-    function renderStockOut() {
-      const container = document.getElementById("tab-stock-out");
-      container.innerHTML = `
-        <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-lg text-slate-800">Saídas (Vendas)</h3><button onclick="showStockOutForm()" class="bg-rose-600 text-white font-bold px-4 py-2 rounded-lg shadow-md">+ Lançar Venda/Saída</button></div>
-        <div class="glass-card rounded-2xl overflow-hidden overflow-x-auto border">
-          <table class="w-full text-sm text-left"><thead class="bg-slate-100 text-xs uppercase text-slate-500 border-b"><tr><th class="p-4">Data</th><th class="p-4">Produto</th><th class="p-4 text-center">Tipo</th><th class="p-4 text-center">Qtd</th><th class="p-4 font-bold">Total Arrecadado</th></tr></thead>
-          <tbody class="divide-y bg-white text-slate-600">
-            ${[...AppState.stockOut].reverse().map(item => `<tr><td class="p-4 text-xs font-semibold">${formatDate(item.date)}</td><td class="p-4 font-bold text-slate-800">${AppState.products.find(p=>p.id===item.productId)?.name || 'Removido'}</td><td class="p-4 text-center"><span class="bg-slate-100 px-2 py-1 rounded text-[10px] font-bold uppercase">${item.type}</span></td><td class="p-4 text-center font-bold text-rose-600 font-mono text-base">-${item.quantity}</td><td class="p-4 font-mono font-bold text-emerald-700">${formatCurrency(item.quantity * item.price)}</td></tr>`).join("")}
-          </tbody></table>
-        </div>
-      `;
-    }
-    
-    function showStockOutForm() {
+function showStockOutForm() {
       if(AppState.products.length === 0) return showToast("Cadastre um produto antes", "error");
-      const formHtml = `<form class="space-y-4"><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Produto</label><select id="form-out-prod" onchange="autoFillOutPrice(this.value)" class="w-full border rounded-lg p-2.5 bg-slate-50 outline-none"><option value="">Selecione...</option>${AppState.products.map(p=>`<option value="${p.id}">${p.name} (Saldo: ${p.currentStock})</option>`).join("")}</select></div><div class="grid grid-cols-2 gap-4"><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tipo</label><select id="form-out-type" class="w-full border rounded-lg p-2.5 bg-slate-50 outline-none"><option value="Venda">Venda</option><option value="Perda">Dano/Perda</option><option value="Brinde">Brinde</option></select></div><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Qtd</label><input type="number" id="form-out-qty" class="w-full border rounded-lg p-2.5 bg-slate-50 outline-none" required /></div></div><div class="grid grid-cols-2 gap-4"><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Venda Unitário (R$)</label><input type="number" step="0.01" id="form-out-price" class="w-full border rounded-lg p-2.5 bg-slate-50 outline-none" /></div><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Canal</label><select id="form-out-channel" class="w-full border rounded-lg p-2.5 bg-slate-50 outline-none"><option value="WhatsApp">WhatsApp</option><option value="Instagram">Instagram</option><option value="Balcão">Balcão Físico</option></select></div></div></form>`;
+      const formHtml = `<form class="space-y-4"><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Produto</label><select id="form-out-prod" onchange="autoFillOutPrice(this.value)" class="w-full border rounded-lg p-2.5 bg-slate-50 outline-none"><option value="">Selecione...</option>${AppState.products.map(p=>`<option value="${p.id}">${p.name} (Saldo: ${p.currentStock})</option>`).join("")}</select></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tipo</label><select id="form-out-type" class="w-full border rounded-lg p-2.5 bg-slate-50 outline-none"><option value="Venda">Venda</option><option value="Perda">Dano/Perda</option><option value="Brinde">Brinde</option></select></div><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Qtd</label><input type="number" id="form-out-qty" class="w-full border rounded-lg p-2.5 bg-slate-50 outline-none" required /></div></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Venda Unitário (R$)</label><input type="number" step="0.01" id="form-out-price" class="w-full border rounded-lg p-2.5 bg-slate-50 outline-none" /></div><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Canal</label><select id="form-out-channel" class="w-full border rounded-lg p-2.5 bg-slate-50 outline-none"><option value="WhatsApp">WhatsApp</option><option value="Instagram">Instagram</option><option value="Balcão">Balcão Físico</option></select></div></div></form>`;
       openModal("📤 Lançar Saída", formHtml, () => {
         const pId = document.getElementById("form-out-prod").value; const qty = parseInt(document.getElementById("form-out-qty").value);
         if(!pId || !qty || qty <= 0) return showToast("Preencha corretamente!", "error");
@@ -650,7 +637,6 @@
         saveToCloud(); closeModal(); renderStockOut();
       });
     }
-
     function autoFillOutPrice(prodId) {
       const p = AppState.products.find(item => item.id === prodId);
       if (p) document.getElementById("form-out-price").value = p.sellingPrice || "";
@@ -727,7 +713,7 @@
       `;
     }
 
-    function showSupplierForm(supplierId = null) {
+   function showSupplierForm(supplierId = null) {
       let s = { id: "", name: "", contact: "", email: "", phone: "", website: "", leadTime: 7, paymentTerms: "À Vista", rating: 5, notes: "" };
       if (supplierId) s = AppState.suppliers.find(item => item.id === supplierId) || s;
       const title = s.id ? "✏️ Editar Fornecedor" : "🏭 Cadastrar Fornecedor";
@@ -735,19 +721,19 @@
         <form id="supplier-modal-form" class="space-y-4">
           <input type="hidden" id="form-s-id" value="${s.id}" />
           <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-name">Razão Social / Nome Fantasia *</label><input type="text" id="form-s-name" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" value="${s.name}" required /></div>
-          <div class="grid grid-cols-2 gap-4"><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-contact">Nome do Representante</label><input type="text" id="form-s-contact" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" value="${s.contact}" /></div><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-phone">Telefone comercial</label><input type="text" id="form-s-phone" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" value="${s.phone}" placeholder="(XX) XXXXX-XXXX" /></div></div>
-          <div class="grid grid-cols-2 gap-4"><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-email">E-mail para cotações</label><input type="email" id="form-s-email" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" value="${s.email}" placeholder="vendas@fornecedor.com" /></div><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-web">Página web (Website)</label><input type="text" id="form-s-web" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" value="${s.website}" placeholder="www.fornecedor.com" /></div></div>
-          <div class="grid grid-cols-3 gap-4">
-            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-lead">Lead Time (dias)</label><input type="number" id="form-s-lead" min="0" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50 font-mono text-center" value="${s.leadTime}" /></div>
-            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-pay">Vencimento Fatura</label>
-              <select id="form-s-pay" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50 bg-white">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-contact">Nome do Representante</label><input type="text" id="form-s-contact" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" value="${s.contact}" /></div><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-phone">Telefone</label><input type="text" id="form-s-phone" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" value="${s.phone}" placeholder="(XX) XXXXX-XXXX" /></div></div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-email">E-mail</label><input type="email" id="form-s-email" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" value="${s.email}" placeholder="vendas@..." /></div><div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-web">Website</label><input type="text" id="form-s-web" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50" value="${s.website}" placeholder="www..." /></div></div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-lead">Espera (dias)</label><input type="number" id="form-s-lead" min="0" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50 font-mono text-center" value="${s.leadTime}" /></div>
+            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-pay">Fatura</label>
+              <select id="form-s-pay" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-white">
                 <option value="À Vista" ${s.paymentTerms === 'À Vista' ? 'selected' : ''}>À Vista</option>
                 <option value="15 Dias" ${s.paymentTerms === '15 Dias' ? 'selected' : ''}>15 Dias</option>
                 <option value="30 Dias" ${s.paymentTerms === '30 Dias' ? 'selected' : ''}>30 Dias</option>
               </select>
             </div>
-            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-rate">Avaliação Rating</label>
-              <select id="form-s-rate" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-slate-50 bg-white">
+            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1.5" for="form-s-rate">Rating</label>
+              <select id="form-s-rate" class="w-full border rounded-lg px-3 py-2 text-sm outline-none bg-white">
                 <option value="5" ${s.rating == 5 ? 'selected' : ''}>⭐⭐⭐⭐⭐</option>
                 <option value="4" ${s.rating == 4 ? 'selected' : ''}>⭐⭐⭐⭐</option>
                 <option value="3" ${s.rating == 3 ? 'selected' : ''}>⭐⭐⭐</option>
