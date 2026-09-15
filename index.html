@@ -254,13 +254,15 @@
     }
   }
 
-  // --- SINCRONIZAÇÃO ---
+ // --- SINCRONIZAÇÃO ---
   function startRealtimeSync() {
     const cloudStatus = document.getElementById("cloud-status");
     cloudStatus.innerHTML = `<span class="animate-spin">🔄</span> Baixando...`;
 
     activeSnapshot = docRef.onSnapshot((doc) => {
-      if (doc.exists && doc.data().products && doc.data().products.length > 0) {
+      // CORREÇÃO: Agora ele checa se existem "categorias" no banco de dados, e não "produtos". 
+      // Assim, se o seu estoque estiver vazio, ele NÃO apaga seus fornecedores!
+      if (doc.exists && doc.data().categories) {
         const cloudData = doc.data();
         AppState.products = cloudData.products || [];
         AppState.stockIn = cloudData.stockIn || [];
