@@ -1,4 +1,4 @@
-const CACHE_NAME = 'estoquepro-saas-v16'; // Ao mudar este número, os celulares atualizam sozinhos
+const CACHE_NAME = 'estoquepro-saas-v17'; // Ao mudar este número, os celulares atualizam sozinhos
 const urlsToCache = [
   './index.html',
   './manifest.json'
