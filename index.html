@@ -528,9 +528,38 @@
     });
   }
 
-  function handleImageUpload(event, base64Id, previewId) {
+function handleImageUpload(event, base64Id, previewId) {
     const file = event.target.files[0];
-    if (file) { const reader = new FileReader(); reader.onload = function(e) { const b64 = e.target.result; document.getElementById(base64Id).value = b64; document.getElementById(previewId).src = b64; document.getElementById(previewId).classList.remove("hidden"); const textEl = document.getElementById("drop-zone-text"); if(textEl) textEl.classList.add("hidden"); }; reader.readAsDataURL(file); }
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = function() {
+        // Cria uma tela (canvas) invisível para espremer a foto
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 400; // Reduz a largura da imagem para 400 pixels
+        const scaleSize = MAX_WIDTH / img.width;
+        canvas.width = MAX_WIDTH;
+        canvas.height = img.height * scaleSize;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        // Converte para JPEG com qualidade de 60% (Fica muito leve)
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+
+        // Salva a versão comprimida no formulário
+        document.getElementById(base64Id).value = compressedBase64;
+        document.getElementById(previewId).src = compressedBase64; 
+        document.getElementById(previewId).classList.remove("hidden"); 
+        
+        const textEl = document.getElementById("drop-zone-text"); 
+        if(textEl) textEl.classList.add("hidden");
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
   }
 
   function deleteProduct(id) { if (confirm("Apagar permanentemente este produto?")) { AppState.products = AppState.products.filter(p => p.id !== id); saveToCloud(); renderInventory(); } }
